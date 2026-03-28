@@ -32,15 +32,16 @@ if(!id){
 return Response.json({message:"User id is required"},{status:400})
 }
 
-const user = await User.findById(id)
+let user = await User.findById(id).lean()
 
 if(!user){
 return Response.json({message:"User not found"},{status:404})
 }
 
 if((user.role === "school" || user.role === "staff") && !user.uniqueCode){
-user.uniqueCode = await generateUniqueCode(user.role)
-await user.save()
+const generatedCode = await generateUniqueCode(user.role)
+await User.findByIdAndUpdate(user._id, { $set: { uniqueCode: generatedCode } })
+user.uniqueCode = generatedCode
 }
 
 return Response.json({
@@ -51,7 +52,11 @@ email:user.email,
 phone:user.phone,
 address:user.address,
 aadhaar:user.aadhaar,
-uniqueCode:user.uniqueCode
+uniqueCode:user.uniqueCode,
+currentCommission:user.currentCommission || 0,
+totalCommission:user.totalCommission || 0,
+totalReferralCount:user.totalReferralCount || 0,
+paymentStatus:user.paymentStatus || "pending"
 })
 
 }catch(error){

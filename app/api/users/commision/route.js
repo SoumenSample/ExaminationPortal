@@ -7,7 +7,7 @@ try{
 
 await connectDB()
 
-const { userId, commission } = await req.json()
+const { userId, paymentStatus } = await req.json()
 
 const user = await User.findById(userId)
 
@@ -15,13 +15,23 @@ if(!user){
 return Response.json({message:"User not found"}, {status:404})
 }
 
-const total = user.referralCount * commission
+if(!["pending","paid"].includes(paymentStatus)){
+return Response.json({message:"Invalid payment status"}, {status:400})
+}
 
 const updated = await User.findByIdAndUpdate(
 userId,
-{
-commissionPerReferral: commission,
-totalCommission: total
+paymentStatus === "paid"
+? {
+paymentStatus: "paid",
+currentCommission: 0,
+referralCount: 0,
+referral100Count: 0,
+referral150Count: 0,
+referral200Count: 0
+}
+: {
+paymentStatus: "pending"
 },
 { new: true }
 )

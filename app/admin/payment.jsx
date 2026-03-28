@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import ChatBox from "@/app/component/chatBox.jsx"
 
 export default function Dashboard() {
 
@@ -20,8 +19,6 @@ export default function Dashboard() {
 
   const [payments,setPayments] = useState([])
   const [showPaymentModal,setShowPaymentModal] = useState(false)
-
-  const [chatOpen,setChatOpen] = useState(false)
 
   // ---------------- FETCH USER ----------------
   useEffect(()=>{
@@ -200,17 +197,6 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-
-      {/* CHAT */}
-      <button
-        onClick={()=>setChatOpen(!chatOpen)}
-        className="fixed bottom-6 right-6 bg-blue-600 text-white px-4 py-3 rounded-full"
-      >
-        Chat
-      </button>
-
-      {chatOpen && <ChatBox user={user}/>}
-
     </div>
   )
 }

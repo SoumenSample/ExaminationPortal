@@ -120,6 +120,8 @@ import Payment from "./payment"
 import Examination from "./examination"
 import LinkPage from "./link"
 import Topper from "./topper"
+import ReportsDashboard from "./reportsDashboard"
+import ChatSupport from "./chatSupport"
 
 export default function AdminPanel(){
 
@@ -136,6 +138,8 @@ export default function AdminPanel(){
   { name: "Commission Calculation", value: "commission" },
   { name: "Link Management", value: "link" },
   { name: "Topper list", value: "topper" },
+  { name: "Reports Dashboard", value: "reports" },
+  { name: "Chat Support", value: "chat-support" },
 ]
 
   // ✅ FETCH USER
@@ -301,7 +305,12 @@ export default function AdminPanel(){
           {tab === "commission" && <Commision />}
 
           {tab === "link" && <LinkPage />}
+          
           {tab === "topper" && <Topper />}
+
+          {tab === "reports" && <ReportsDashboard />}
+
+          {tab === "chat-support" && <ChatSupport user={user} />}
 
         </div>
 

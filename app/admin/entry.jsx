@@ -83,11 +83,10 @@ className="bg-green-600 text-white px-4 py-2 rounded mb-6 disabled:opacity-60"
 
 ) : (
 
-<div className="overflow-hidden">
+<div className="w-full">
 <div
 className="overflow-x-auto border border-gray-300 rounded"
 style={{ 
-  maxWidth: "calc(310px + 16px)",
   scrollbarWidth: "thin", 
   scrollbarColor: "#888 #f1f1f1" 
 }}

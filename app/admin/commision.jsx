@@ -1,55 +1,55 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 
 const Commission = () => {
 
 const [users,setUsers] = useState([])
+const [loading,setLoading] = useState(true)
+const [statusUpdatingId,setStatusUpdatingId] = useState(null)
 
 const fetchUsers = async()=>{
 
 const res = await fetch("/api/users")
 const data = await res.json()
 
-const filtered = data.filter(
-user => user.role === "staff" || user.role === "school"
-)
-
-setUsers(filtered)
+setUsers(data)
+setLoading(false)
 
 }
 
 useEffect(()=>{
-const loadUsers = async()=>{
-const res = await fetch("/api/users")
-const data = await res.json()
-
-const filtered = data.filter(
-user => user.role === "staff" || user.role === "school"
-)
-
-setUsers(filtered)
-}
-
-loadUsers()
+fetchUsers()
 },[])
 
 
-const updateCommission = async(userId,value)=>{
+const commissionRows = useMemo(()=>{
+  return users.filter(
+    (user)=> user.role === "staff" || user.role === "school"
+  )
+},[users])
 
-await fetch("/api/users/commision",{
-method:"PATCH",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify({
-userId,
-commission:Number(value)
-})
-})
+const handlePaymentStatusChange = async(userId,nextStatus)=>{
+  try{
+    setStatusUpdatingId(userId)
 
-fetchUsers()
+    const res = await fetch("/api/users/commision", {
+      method:"PATCH",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ userId, paymentStatus: nextStatus })
+    })
 
+    if(!res.ok){
+      throw new Error("Failed to update payment status")
+    }
+
+    await fetchUsers()
+  }catch(error){
+    console.error(error)
+    alert("Could not update payment status")
+  }finally{
+    setStatusUpdatingId(null)
+  }
 }
 
 
@@ -78,8 +78,13 @@ style={{ WebkitOverflowScrolling: "touch", scrollbarWidth: "thin", scrollbarColo
 <th className="border p-2 min-w-45">Email</th>
 <th className="border p-2 min-w-25">Role</th>
 <th className="border p-2 min-w-32.5">Referral Code</th>
-<th className="border p-2 min-w-32.5">Referral Count</th>
-<th className="border p-2 min-w-42.5">Commission Per Referral</th>
+<th className="border p-2 min-w-28">Rs 100 Referrals</th>
+<th className="border p-2 min-w-28">Rs 150 Referrals</th>
+<th className="border p-2 min-w-28">Rs 200 Referrals</th>
+<th className="border p-2 min-w-28">Current Referrals</th>
+<th className="border p-2 min-w-28">Total Referrals</th>
+<th className="border p-2 min-w-32.5">Payment Status</th>
+<th className="border p-2 min-w-32.5">Current Commission</th>
 <th className="border p-2 min-w-32.5">Total Commission</th>
 </tr>
 
@@ -87,24 +92,41 @@ style={{ WebkitOverflowScrolling: "touch", scrollbarWidth: "thin", scrollbarColo
 
 <tbody>
 
-{users.map((user)=>(
+{loading ? (
+<tr>
+<td colSpan="12" className="text-center p-4">Loading...</td>
+</tr>
+) : commissionRows.length === 0 ? (
+<tr>
+<td colSpan="12" className="text-center p-4">No staff or school data found</td>
+</tr>
+) : commissionRows.map((user)=>(
 <tr key={user._id} className="text-center">
 
 <td className="border p-2 min-w-30">{user.name}</td>
 <td className="border p-2 min-w-45">{user.email}</td>
 <td className="border p-2 min-w-25">{user.role}</td>
 <td className="border p-2 min-w-32.5">{user.referralCode}</td>
-<td className="border p-2 min-w-32.5">{user.referralCount || 0}</td>
+<td className="border p-2 min-w-28">{user.referral100Count || 0}</td>
+<td className="border p-2 min-w-28">{user.referral150Count || 0}</td>
+<td className="border p-2 min-w-28">{user.referral200Count || 0}</td>
+<td className="border p-2 min-w-28">{user.referralCount || 0}</td>
+<td className="border p-2 min-w-28">{user.totalReferralCount || 0}</td>
 
-<td className="border p-2 min-w-42.5">
+<td className="border p-2 min-w-32.5">
+<select
+value={user.paymentStatus || "pending"}
+onChange={(e)=>handlePaymentStatusChange(user._id, e.target.value)}
+disabled={statusUpdatingId === user._id}
+className="border border-gray-300 rounded px-2 py-1 bg-white"
+>
+<option value="pending">Pending</option>
+<option value="paid">Paid</option>
+</select>
+</td>
 
-<input
-type="number"
-defaultValue={user.commissionPerReferral || 0}
-className="border p-1 w-24"
-onBlur={(e)=>updateCommission(user._id,e.target.value)}
-/>
-
+<td className="border p-2 min-w-32.5">
+₹ {user.currentCommission || 0}
 </td>
 
 <td className="border p-2 min-w-32.5">

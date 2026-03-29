@@ -33,8 +33,8 @@ export async function GET(req) {
           name: 1,
           email: 1,
           phone: 1,
-          totalStudentsReferred: { $size: "$referredStudents" },
-          totalCommissionEarned: 1,
+          totalStudentsReferred: { $ifNull: ["$totalReferralCount", { $size: "$referredStudents" }] },
+          totalCommissionEarned: { $ifNull: ["$totalCommission", 0] },
           referralCode: 1,
           totalReferralCount: 1
         }
@@ -73,7 +73,7 @@ export async function GET(req) {
           email: 1,
           phone: 1,
           totalStudentsRegistered: { $size: "$registeredStudents" },
-          totalCommissionEarned: 1,
+          totalCommissionEarned: { $ifNull: ["$totalCommission", 0] },
           referralCode: 1
         }
       },

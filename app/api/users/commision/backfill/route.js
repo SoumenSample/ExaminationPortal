@@ -17,7 +17,7 @@ export async function POST(req) {
     const dryRun = Boolean(body?.dryRun)
 
     const referrers = await User.find({ role: { $in: ["staff", "school"] } })
-      .select("_id email role referralCode uniqueCode")
+      .select("_id email role referralCode uniqueCode totalCommission totalReferralCount")
       .lean()
 
     const referrerIds = referrers.map((r) => r._id)
@@ -96,6 +96,12 @@ export async function POST(req) {
         currentCommission: 0,
       }
 
+      const existingLifetimeCommission = Number(referrer.totalCommission || 0)
+      const existingLifetimeReferrals = Number(referrer.totalReferralCount || 0)
+
+      const safeLifetimeCommission = Math.max(existingLifetimeCommission, Number(stats.totalCommission || 0))
+      const safeLifetimeReferrals = Math.max(existingLifetimeReferrals, Number(stats.totalReferralCount || 0))
+
       bulkOps.push({
         updateOne: {
           filter: { _id: referrer._id },
@@ -105,8 +111,8 @@ export async function POST(req) {
               referral150Count: stats.referral150Count,
               referral200Count: stats.referral200Count,
               referralCount: stats.referralCount,
-              totalReferralCount: stats.totalReferralCount,
-              totalCommission: stats.totalCommission,
+              totalReferralCount: safeLifetimeReferrals,
+              totalCommission: safeLifetimeCommission,
               currentCommission: stats.currentCommission,
               paymentStatus: "pending",
             },

@@ -122,6 +122,7 @@ import LinkPage from "./link"
 import Topper from "./topper"
 import ReportsDashboard from "./reportsDashboard"
 import ChatSupport from "./chatSupport"
+import StaffActivity from "./staffActivity"
 
 export default function AdminPanel(){
 
@@ -140,6 +141,7 @@ export default function AdminPanel(){
   { name: "Topper list", value: "topper" },
   { name: "Reports Dashboard", value: "reports" },
   { name: "Chat Support", value: "chat-support" },
+  { name: "Staff Activity", value: "staff-activity" },
 ]
 
   // ✅ FETCH USER
@@ -202,7 +204,7 @@ export default function AdminPanel(){
 
 
       {/* MAIN CONTENT */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
 
         {/* ✅ HEADER */}
         <div className="relative flex justify-between items-center bg-white shadow px-4 md:px-10 py-4 mx-4 md:mx-10 my-4 md:my-5 rounded-xl mb-6">
@@ -294,7 +296,7 @@ export default function AdminPanel(){
 
 
         {/* CONTENT */}
-        <div className="p-4 md:p-8 flex-1">
+        <div className="p-4 md:p-8 flex-1 min-w-0">
 
           {tab === "examination" && <Examination />}
 
@@ -311,6 +313,8 @@ export default function AdminPanel(){
           {tab === "reports" && <ReportsDashboard />}
 
           {tab === "chat-support" && <ChatSupport user={user} />}
+
+          {tab === "staff-activity" && <StaffActivity />}
 
         </div>
 

@@ -46,7 +46,7 @@ export async function GET(req) {
     }
 
     const students = await User.find(buildEnrollmentQuery(owner))
-      .select("name email registrationFee commissionPerReferral createdAt class age")
+      .select("name email registrationFee commissionPerReferral createdAt class age rollNo section")
       .sort({ createdAt: -1 })
       .lean()
 
@@ -66,6 +66,8 @@ export async function GET(req) {
       email: student.email || "",
       class: student.class || "",
       age: student.age || null,
+      rollNo: student.rollNo || "",
+      section: student.section || "",
       registrationAmount: Number(student.registrationFee || 0),
       commissionAmount: Number(student.commissionPerReferral || 0),
       enrolledAt: student.createdAt,

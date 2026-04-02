@@ -12,11 +12,43 @@ name:String,
 email:String,
 phone:String,
 address:String,
+addressLine1:{
+type:String,
+required:function(){return ["school","staff","student"].includes(this.role)}
+},
+addressLine2:{
+type:String,
+required:function(){return ["school","staff","student"].includes(this.role)}
+},
+bankDetails:{
+type:String,
+default:""
+},
+district:{
+type:String,
+required:function(){return ["school","staff","student"].includes(this.role)}
+},
+pincode:{
+type:String,
+required:function(){return ["school","staff","student"].includes(this.role)}
+},
+state:{
+type:String,
+required:function(){return ["school","staff","student"].includes(this.role)}
+},
 aadhaar:String,
 
 // New fields for students
 age:{
 type:Number,
+required:function(){return this.role === "student"}
+},
+rollNo:{
+type:String,
+required:function(){return this.role === "student"}
+},
+section:{
+type:String,
 required:function(){return this.role === "student"}
 },
 class:{
@@ -122,6 +154,14 @@ referral150Count:{ type:Number, default:0 },
 referral200Count:{ type:Number, default:0 },
 currentCommission:{ type:Number, default:0 },
 paymentStatus:{ type:String, enum:["pending","paid"], default:"pending" },
+addressLine1:{ type:String, default:"" },
+addressLine2:{ type:String, default:"" },
+district:{ type:String, default:"" },
+pincode:{ type:String, default:"" },
+state:{ type:String, default:"" },
+bankDetails:{ type:String, default:"" },
+rollNo:{ type:String, default:"" },
+section:{ type:String, default:"" },
 }
 
 Object.entries(runtimeAdditions).forEach(([key,definition])=>{

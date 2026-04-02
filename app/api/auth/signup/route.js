@@ -78,6 +78,7 @@
 import { connectDB } from "../../../../lib/db"
 import User from "@/models/User"
 import OTP from "@/models/OTP"
+import School from "@/models/School"
 import bcrypt from "bcryptjs"
 import { calculateRegistrationFee, calculateCommission, generateTemporaryPassword } from "../../../../lib/utils"
 import { sendLoginCredentialsEmail, sendReferralNotificationEmail } from "../../../../lib/emailService"
@@ -116,10 +117,17 @@ export async function POST(req){
       email,
       phone,
       address,
+      addressLine1,
+      addressLine2,
+      district,
+      pincode,
+      state,
       aadhaar,
       password,
       referralCode,
       age,
+      rollNo,
+      section,
       class: studentClass,
       registrationSchool,
       registrationType,
@@ -131,15 +139,36 @@ export async function POST(req){
       : ""
     
     const role = normalizedRole === "stuff" ? "staff" : normalizedRole
-    const normalizedReferralCode = typeof referralCode === "string"
+    const normalizedReferralCodeInput = typeof referralCode === "string"
       ? referralCode.trim().toUpperCase()
       : ""
+    let effectiveReferralCode = normalizedReferralCodeInput
+
+    const normalizedAddressLine1 = typeof addressLine1 === "string" ? addressLine1.trim() : ""
+    const normalizedAddressLine2 = typeof addressLine2 === "string" ? addressLine2.trim() : ""
+    const normalizedDistrict = typeof district === "string" ? district.trim() : ""
+    const normalizedState = typeof state === "string" ? state.trim() : ""
+    const normalizedPincode = typeof pincode === "string" ? pincode.trim() : ""
     
     let referrerId = null
     
     if(!["school","staff","student"].includes(role)){
       return Response.json(
         {message:"Invalid role"},
+        {status:400}
+      )
+    }
+
+    if(!normalizedAddressLine1 || !normalizedAddressLine2 || !normalizedDistrict || !normalizedPincode || !normalizedState){
+      return Response.json(
+        {message:"Address Line 1, Address Line 2, District, Pincode and State are required"},
+        {status:400}
+      )
+    }
+
+    if(!/^\d{6}$/.test(normalizedPincode)){
+      return Response.json(
+        {message:"Pincode must be a 6-digit number"},
         {status:400}
       )
     }
@@ -163,9 +192,54 @@ export async function POST(req){
     
     // For students, verify age and class
     if(role === "student"){
-      if(!age || !studentClass){
+      if(!age || !studentClass || !rollNo || !section){
         return Response.json(
-          {message:"Age and Class are required for student registration"},
+          {message:"Age, Class, Roll No and Section are required for student registration"},
+          {status:400}
+        )
+      }
+    }
+
+    const normalizedRollNo = typeof rollNo === "string" ? rollNo.trim() : ""
+    const normalizedSection = typeof section === "string" ? section.trim() : ""
+
+    if(role === "student" && registrationType === "school"){
+      if(!registrationSchool){
+        return Response.json(
+          {message:"Please select a school for school registration"},
+          {status:400}
+        )
+      }
+
+      let schoolUser = await User.findOne({ _id: registrationSchool, role: "school" })
+        .select("_id email name uniqueCode referralCode")
+
+      if(!schoolUser){
+        const schoolDoc = await School.findById(registrationSchool).select("email name")
+
+        if(schoolDoc){
+          schoolUser = await User.findOne({
+            role: "school",
+            $or: [
+              { email: schoolDoc.email },
+              { name: schoolDoc.name },
+            ],
+          }).select("_id email name uniqueCode referralCode")
+        }
+      }
+
+      if(!schoolUser){
+        return Response.json(
+          {message:"Selected school does not have a referral code yet"},
+          {status:400}
+        )
+      }
+
+      effectiveReferralCode = (schoolUser.uniqueCode || schoolUser.referralCode || "").trim().toUpperCase()
+
+      if(!effectiveReferralCode){
+        return Response.json(
+          {message:"Selected school referral code is unavailable"},
           {status:400}
         )
       }
@@ -185,12 +259,12 @@ export async function POST(req){
     }
     
     // CHECK REFERRAL CODE FOR STUDENT
-    if(role === "student" && normalizedReferralCode){
+    if(role === "student" && effectiveReferralCode){
       const referrer = await User.findOne({
         role: { $in: ["school","staff"] },
         $or: [
-          { uniqueCode: normalizedReferralCode },
-          { referralCode: normalizedReferralCode }
+          { uniqueCode: effectiveReferralCode },
+          { referralCode: effectiveReferralCode }
         ]
       }).select("_id email")
       
@@ -248,14 +322,29 @@ export async function POST(req){
     }
     
     // create user
+    const combinedAddress = [
+      normalizedAddressLine1,
+      normalizedAddressLine2,
+      normalizedDistrict,
+      normalizedPincode,
+      normalizedState,
+    ].join(", ")
+
     const user = await User.create({
       role,
       name,
       email,
       phone,
-      address,
+      address: combinedAddress || address,
+      addressLine1: normalizedAddressLine1,
+      addressLine2: normalizedAddressLine2,
+      district: normalizedDistrict,
+      pincode: normalizedPincode,
+      state: normalizedState,
       aadhaar,
       age: role === "student" ? age : null,
+      rollNo: role === "student" ? normalizedRollNo : null,
+      section: role === "student" ? normalizedSection : null,
       class: role === "student" ? studentClass : null,
       registrationSchool: role === "student" && registrationSchool ? registrationSchool : null,
       registrationType: role === "student" ? registrationType || "individual" : null,
@@ -264,7 +353,7 @@ export async function POST(req){
       
       ...(role !== "student" ? { uniqueCode: generatedCode } : {}),
       referralCode: role === "student"
-        ? normalizedReferralCode || null
+        ? effectiveReferralCode || null
         : generatedCode,
       referredBy: role === "student" ? referrerId : null,
       commissionPerReferral: role === "student" ? commissionAmount : 0,

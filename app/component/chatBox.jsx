@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { io } from "socket.io-client"
+import { useAppDialog } from "./AppDialog"
 
 export default function ChatBox({ user, isAdmin = false, fixed = true }) {
+  const { showAlert, showConfirm } = useAppDialog()
   const [messages, setMessages] = useState([])
   const [message, setMessage] = useState("")
   const [searchText, setSearchText] = useState("")
@@ -140,7 +142,7 @@ export default function ChatBox({ user, isAdmin = false, fixed = true }) {
 
     const studentEmail = isAdmin ? selectedStudent : user.email
     if (!studentEmail) {
-      alert("Select a student conversation first")
+      await showAlert("Select a student conversation first", { title: "Chat Support" })
       return
     }
 
@@ -163,7 +165,7 @@ export default function ChatBox({ user, isAdmin = false, fixed = true }) {
     console.log("✅ API Response:", { status: res.status, data: saved })
 
     if (!res.ok) {
-      alert(saved?.error || "Failed to send message")
+      await showAlert(saved?.error || "Failed to send message", { title: "Chat Support" })
       return
     }
 
@@ -196,14 +198,19 @@ export default function ChatBox({ user, isAdmin = false, fixed = true }) {
       setMessages((prev) => prev.map((m) => (m._id === messageId ? data.data : m)))
       resetEdit()
     } else {
-      alert(data?.error || "Failed to edit message")
+      await showAlert(data?.error || "Failed to edit message", { title: "Chat Support" })
     }
 
     setBusyKey("")
   }
 
   const handleDeleteMessage = async (messageId) => {
-    if (!window.confirm("Delete this message?")) return
+    const shouldDelete = await showConfirm("Delete this message?", {
+      title: "Delete Message",
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+    })
+    if (!shouldDelete) return
 
     setBusyKey(`delete-${messageId}`)
 
@@ -218,7 +225,7 @@ export default function ChatBox({ user, isAdmin = false, fixed = true }) {
     if (res.ok && data?.data) {
       setMessages((prev) => prev.map((m) => (m._id === messageId ? data.data : m)))
     } else {
-      alert(data?.error || "Failed to delete message")
+      await showAlert(data?.error || "Failed to delete message", { title: "Delete Message" })
     }
 
     setBusyKey("")
@@ -226,7 +233,12 @@ export default function ChatBox({ user, isAdmin = false, fixed = true }) {
 
   const handleBlockUser = async (targetEmail) => {
     if (!targetEmail) return
-    if (!window.confirm(`Block user ${targetEmail}?`)) return
+    const shouldBlock = await showConfirm(`Block user ${targetEmail}?`, {
+      title: "Block User",
+      confirmLabel: "Block",
+      cancelLabel: "Cancel",
+    })
+    if (!shouldBlock) return
 
     setBusyKey(`block-${targetEmail}`)
 
@@ -242,7 +254,7 @@ export default function ChatBox({ user, isAdmin = false, fixed = true }) {
 
     const data = await res.json()
     if (!res.ok) {
-      alert(data?.error || "Failed to block user")
+      await showAlert(data?.error || "Failed to block user", { title: "Block User" })
     }
 
     setBusyKey("")

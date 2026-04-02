@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import logo from "../dashboard/WhatsApp Image 2026-03-18 at 9.04.15 PM.jpeg"
+import { useAppDialog } from "./AppDialog"
 
 function formatDate(value) {
   if (!value) return "-"
@@ -24,6 +25,27 @@ function formatDateInput(value) {
   return `${year}-${month}-${day}`
 }
 
+function todayDateKey() {
+  return formatDateInput(new Date())
+}
+
+function formatTime12Hour(value) {
+  if (!value) return "-"
+
+  const parts = String(value).split(":")
+  if (parts.length < 2) return value
+
+  const hour = Number(parts[0])
+  const minute = parts[1]
+
+  if (Number.isNaN(hour)) return value
+
+  const suffix = hour >= 12 ? "PM" : "AM"
+  const hour12 = hour % 12 || 12
+
+  return `${hour12}:${minute} ${suffix}`
+}
+
 function downloadCsv(filename, content) {
   const blob = new Blob([content], { type: "text/csv;charset=utf-8;" })
   const url = URL.createObjectURL(blob)
@@ -38,6 +60,7 @@ function downloadCsv(filename, content) {
 
 export default function EnrollmentSidebarDashboard({ title }) {
   const router = useRouter()
+  const { showAlert } = useAppDialog()
 
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -51,6 +74,56 @@ export default function EnrollmentSidebarDashboard({ title }) {
   const [maxCost, setMaxCost] = useState("")
   const [fromDate, setFromDate] = useState("")
   const [toDate, setToDate] = useState("")
+  const [bankDetails, setBankDetails] = useState("")
+  const [savingBankDetails, setSavingBankDetails] = useState(false)
+  const [staffActivities, setStaffActivities] = useState([])
+  const [loadingStaffActivity, setLoadingStaffActivity] = useState(false)
+  const [savingStaffActivity, setSavingStaffActivity] = useState(false)
+  const [activityDate, setActivityDate] = useState(todayDateKey())
+  const [dailyReport, setDailyReport] = useState("")
+
+  useEffect(() => {
+    if (!activityDate) return
+
+    const existing = staffActivities.find((row) => row.date === activityDate)
+
+    if (existing) {
+      setDailyReport(existing.report || "")
+      return
+    }
+
+    setDailyReport("")
+  }, [activityDate, staffActivities])
+
+  const fetchStaffActivity = async (staffUserId) => {
+    if (!staffUserId) return
+
+    setLoadingStaffActivity(true)
+
+    try {
+      const response = await fetch(`/api/staff-activity?userId=${staffUserId}`)
+      const payload = await response.json()
+
+      if (!response.ok) {
+        throw new Error(payload?.message || "Could not load staff activity")
+      }
+
+      const rows = Array.isArray(payload?.activities) ? payload.activities : []
+      setStaffActivities(rows)
+
+      const today = todayDateKey()
+      const existingForToday = rows.find((row) => row.date === today)
+
+      if (existingForToday) {
+        setActivityDate(existingForToday.date || today)
+        setDailyReport(existingForToday.report || "")
+      }
+    } catch (activityError) {
+      await showAlert(activityError.message || "Could not load staff activity", { title: "Staff Activity" })
+    } finally {
+      setLoadingStaffActivity(false)
+    }
+  }
 
   useEffect(() => {
     const userId = localStorage.getItem("userId")
@@ -76,6 +149,7 @@ export default function EnrollmentSidebarDashboard({ title }) {
 
         if (!isMounted) return
         setUser(userData)
+        setBankDetails(userData?.bankDetails || "")
 
         const enrollmentResponse = await fetch(`/api/dashboard/enrollments?userId=${userId}`)
         const enrollmentData = await enrollmentResponse.json()
@@ -86,6 +160,10 @@ export default function EnrollmentSidebarDashboard({ title }) {
 
         if (!isMounted) return
         setStudents(Array.isArray(enrollmentData.students) ? enrollmentData.students : [])
+
+        if (userData?.role === "staff") {
+          await fetchStaffActivity(userId)
+        }
       } catch (loadError) {
         if (!isMounted) return
         setError(loadError.message || "Failed to load dashboard data")
@@ -112,9 +190,144 @@ export default function EnrollmentSidebarDashboard({ title }) {
     router.push("/signup")
   }
 
-  const menu = [
-    { name: "Student Enrollments", value: "enrollments" },
-  ]
+  const menu = useMemo(() => {
+    const baseMenu = [
+      { name: "Student Enrollments", value: "enrollments" },
+      { name: "Bank Details", value: "bank-details" },
+    ]
+
+    if (user?.role === "staff") {
+      baseMenu.push({ name: "Staff Activity", value: "staff-activity" })
+    }
+
+    return baseMenu
+  }, [user?.role])
+
+  const saveBankDetails = async () => {
+    if (!user?._id) {
+      await showAlert("User is not loaded yet. Please try again.", { title: "Bank Details" })
+      return
+    }
+
+    try {
+      setSavingBankDetails(true)
+
+      const response = await fetch("/api/auth/user", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: user._id,
+          bankDetails,
+        }),
+      })
+
+      const payload = await response.json()
+
+      if (!response.ok) {
+        throw new Error(payload?.message || "Failed to save bank details")
+      }
+
+      const savedDetails = payload?.bankDetails || ""
+      setBankDetails(savedDetails)
+      setUser((prev) => (prev ? { ...prev, bankDetails: savedDetails } : prev))
+
+      await showAlert("Bank details saved successfully", { title: "Bank Details" })
+    } catch (saveError) {
+      await showAlert(saveError.message || "Failed to save bank details", { title: "Bank Details" })
+    } finally {
+      setSavingBankDetails(false)
+    }
+  }
+
+  const currentActivityForDate = useMemo(() => {
+    if (!activityDate) return null
+    return staffActivities.find((row) => row.date === activityDate) || null
+  }, [activityDate, staffActivities])
+
+  const markAttendance = async (action) => {
+    if (!user?._id) {
+      await showAlert("User is not loaded yet. Please try again.", { title: "Attendance" })
+      return
+    }
+
+    try {
+      setSavingStaffActivity(true)
+
+      const response = await fetch("/api/staff-activity", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user._id,
+          action,
+        }),
+      })
+
+      const payload = await response.json()
+
+      if (!response.ok) {
+        throw new Error(payload?.message || `Failed to ${action}`)
+      }
+
+      if (payload?.activity?.date) {
+        setActivityDate(payload.activity.date)
+      }
+
+      await fetchStaffActivity(user._id)
+      await showAlert(action === "check-in" ? "Checked in successfully" : "Checked out successfully", {
+        title: "Attendance",
+      })
+    } catch (saveError) {
+      await showAlert(saveError.message || `Failed to ${action}`, { title: "Attendance" })
+    } finally {
+      setSavingStaffActivity(false)
+    }
+  }
+
+  const saveDailyReport = async () => {
+    if (!user?._id) {
+      await showAlert("User is not loaded yet. Please try again.", { title: "Daily Report" })
+      return
+    }
+
+    if (!activityDate) {
+      await showAlert("Please select report date.", { title: "Daily Report" })
+      return
+    }
+
+    if (!dailyReport.trim()) {
+      await showAlert("Please enter report details.", { title: "Daily Report" })
+      return
+    }
+
+    try {
+      setSavingStaffActivity(true)
+
+      const response = await fetch("/api/staff-activity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user._id,
+          date: activityDate,
+          checkIn: currentActivityForDate?.checkIn || "",
+          checkOut: currentActivityForDate?.checkOut || "",
+          report: dailyReport,
+        }),
+      })
+
+      const payload = await response.json()
+
+      if (!response.ok) {
+        throw new Error(payload?.message || "Failed to save report")
+      }
+
+      await fetchStaffActivity(user._id)
+      await showAlert("Daily report saved", { title: "Daily Report" })
+    } catch (saveError) {
+      await showAlert(saveError.message || "Failed to save report", { title: "Daily Report" })
+    } finally {
+      setSavingStaffActivity(false)
+    }
+  }
 
   const filteredStudents = useMemo(() => {
     const q = searchText.trim().toLowerCase()
@@ -124,10 +337,12 @@ export default function EnrollmentSidebarDashboard({ title }) {
     return students.filter((student) => {
       const studentName = String(student.name || "").toLowerCase()
       const studentClass = String(student.class || "").toLowerCase()
+      const studentRollNo = String(student.rollNo || "").toLowerCase()
+      const studentSection = String(student.section || "").toLowerCase()
       const registrationAmount = Number(student.registrationAmount || 0)
       const enrolled = formatDateInput(student.enrolledAt)
 
-      const textOk = !q || studentName.includes(q) || studentClass.includes(q)
+      const textOk = !q || studentName.includes(q) || studentClass.includes(q) || studentRollNo.includes(q) || studentSection.includes(q)
       const minOk = min === null || registrationAmount >= min
       const maxOk = max === null || registrationAmount <= max
       const fromOk = !fromDate || (enrolled && enrolled >= fromDate)
@@ -157,10 +372,12 @@ export default function EnrollmentSidebarDashboard({ title }) {
   }
 
   const exportExcel = () => {
-    const headers = ["Student Name", "Class", "Date", "Registration Cost"]
+    const headers = ["Student Name", "Class", "Roll No", "Section", "Date", "Registration Cost"]
     const rows = filteredStudents.map((student) => [
       student.name || "",
       student.class || "",
+      student.rollNo || "",
+      student.section || "",
       formatDate(student.enrolledAt),
       Number(student.registrationAmount || 0),
     ])
@@ -182,6 +399,8 @@ export default function EnrollmentSidebarDashboard({ title }) {
           `<tr>
             <td>${String(student.name || "-")}</td>
             <td>${String(student.class || "-")}</td>
+            <td>${String(student.rollNo || "-")}</td>
+            <td>${String(student.section || "-")}</td>
             <td>${formatDate(student.enrolledAt)}</td>
             <td>Rs ${Number(student.registrationAmount || 0)}</td>
           </tr>`
@@ -211,12 +430,14 @@ export default function EnrollmentSidebarDashboard({ title }) {
               <tr>
                 <th>Student Name</th>
                 <th>Class</th>
+                <th>Roll No</th>
+                <th>Section</th>
                 <th>Date</th>
                 <th>Registration Cost</th>
               </tr>
             </thead>
             <tbody>
-              ${rowHtml || '<tr><td colspan="4">No records found</td></tr>'}
+              ${rowHtml || '<tr><td colspan="6">No records found</td></tr>'}
             </tbody>
           </table>
         </body>
@@ -347,137 +568,290 @@ export default function EnrollmentSidebarDashboard({ title }) {
         </div>
 
         <main className="p-4 md:p-8 flex-1">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
-            <div className="rounded-xl bg-white p-4 shadow-sm border border-gray-100">
-              <p className="text-xs text-slate-500">Current Commission</p>
-              <p className="text-2xl font-semibold text-slate-900">Rs {Number(user?.currentCommission || 0)}</p>
-            </div>
+          {tab === "enrollments" && (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+                <div className="rounded-xl bg-white p-4 shadow-sm border border-gray-100">
+                  <p className="text-xs text-slate-500">Current Commission</p>
+                  <p className="text-2xl font-semibold text-slate-900">Rs {Number(user?.currentCommission || 0)}</p>
+                </div>
 
-            <div className="rounded-xl bg-white p-4 shadow-sm border border-gray-100">
-              <p className="text-xs text-slate-500">Total Commission</p>
-              <p className="text-2xl font-semibold text-slate-900">Rs {Number(user?.totalCommission || 0)}</p>
-            </div>
+                <div className="rounded-xl bg-white p-4 shadow-sm border border-gray-100">
+                  <p className="text-xs text-slate-500">Total Commission</p>
+                  <p className="text-2xl font-semibold text-slate-900">Rs {Number(user?.totalCommission || 0)}</p>
+                </div>
 
-            <div className="rounded-xl bg-white p-4 shadow-sm border border-gray-100">
-              <p className="text-xs text-slate-500">Total Referral Count</p>
-              <p className="text-2xl font-semibold text-slate-900">{Number(user?.totalReferralCount || 0)}</p>
-            </div>
-          </div>
+                <div className="rounded-xl bg-white p-4 shadow-sm border border-gray-100">
+                  <p className="text-xs text-slate-500">Total Referral Count</p>
+                  <p className="text-2xl font-semibold text-slate-900">{Number(user?.totalReferralCount || 0)}</p>
+                </div>
+              </div>
 
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold">Enrolled Students</h2>
-              <p className="text-sm text-slate-500">Total enrolled: {filteredSummary.totalStudents}</p>
-            </div>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold">Enrolled Students</h2>
+                  <p className="text-sm text-slate-500">Total enrolled: {filteredSummary.totalStudents}</p>
+                </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={exportExcel}
-                className="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700"
-              >
-                Export Excel
-              </button>
-              <button
-                onClick={exportPdf}
-                className="rounded-lg bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
-              >
-                Export PDF
-              </button>
-              <button
-                onClick={addStudent}
-                className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
-              >
-                Add Student
-              </button>
-            </div>
-          </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={exportExcel}
+                    className="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700"
+                  >
+                    Export Excel
+                  </button>
+                  <button
+                    onClick={exportPdf}
+                    className="rounded-lg bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                  >
+                    Export PDF
+                  </button>
+                  <button
+                    onClick={addStudent}
+                    className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+                  >
+                    Add Student
+                  </button>
+                </div>
+              </div>
 
-          <section className="rounded-xl bg-white p-4 shadow-sm md:p-5 mb-4">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-              <input
-                type="text"
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                placeholder="Search by student/class"
-                className="border border-gray-300 rounded px-3 py-2"
+              <section className="rounded-xl bg-white p-4 shadow-sm md:p-5 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                  <input
+                    type="text"
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    placeholder="Search by student/class/roll no/section"
+                    className="border border-gray-300 rounded px-3 py-2"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    value={minCost}
+                    onChange={(e) => setMinCost(e.target.value)}
+                    placeholder="Min cost"
+                    className="border border-gray-300 rounded px-3 py-2"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    value={maxCost}
+                    onChange={(e) => setMaxCost(e.target.value)}
+                    placeholder="Max cost"
+                    className="border border-gray-300 rounded px-3 py-2"
+                  />
+                  <input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    className="border border-gray-300 rounded px-3 py-2"
+                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={toDate}
+                      onChange={(e) => setToDate(e.target.value)}
+                      className="border border-gray-300 rounded px-3 py-2 w-full"
+                    />
+                    <button
+                      onClick={resetFilters}
+                      className="border border-gray-300 rounded px-3 py-2 hover:bg-gray-100"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  Filtered registration amount total: Rs {filteredSummary.totalRegistrationAmount}
+                </p>
+              </section>
+
+              <section className="rounded-xl bg-white p-4 shadow-sm md:p-5">
+                {loading ? (
+                  <p className="text-sm text-slate-500">Loading enrollment details...</p>
+                ) : error ? (
+                  <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>
+                ) : filteredStudents.length === 0 ? (
+                  <p className="text-sm text-slate-500">No students enrolled yet.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border-separate border-spacing-y-2 text-sm">
+                      <thead>
+                        <tr className="text-left text-slate-500">
+                          <th className="px-3 py-2">Student Name</th>
+                          <th className="px-3 py-2">Roll No</th>
+                          <th className="px-3 py-2">Section</th>
+                          <th className="px-3 py-2">Date</th>
+                          <th className="px-3 py-2">Registration Cost</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredStudents.map((student) => (
+                          <tr key={student._id} className="rounded-lg bg-slate-50">
+                            <td className="px-3 py-2 font-medium text-slate-800">
+                              <div>{student.name}</div>
+                              {student.class && (
+                                <div className="text-xs text-slate-500">{student.class}</div>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-slate-700">{student.rollNo || "-"}</td>
+                            <td className="px-3 py-2 text-slate-700">{student.section || "-"}</td>
+                            <td className="px-3 py-2 text-slate-700">{formatDate(student.enrolledAt)}</td>
+                            <td className="px-3 py-2 text-slate-700">Rs {student.registrationAmount}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            </>
+          )}
+
+          {tab === "bank-details" && (
+            <section className="rounded-xl bg-white p-4 shadow-sm md:p-5 max-w-3xl">
+              <h2 className="text-lg font-semibold mb-2">Bank Details</h2>
+              <p className="text-sm text-slate-500 mb-4">
+                Add or update your bank account details.
+              </p>
+
+              <textarea
+                value={bankDetails}
+                onChange={(e) => setBankDetails(e.target.value)}
+                rows={10}
+                placeholder="Enter Your Bank Details here..."
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
               />
-              <input
-                type="number"
-                min="0"
-                value={minCost}
-                onChange={(e) => setMinCost(e.target.value)}
-                placeholder="Min cost"
-                className="border border-gray-300 rounded px-3 py-2"
-              />
-              <input
-                type="number"
-                min="0"
-                value={maxCost}
-                onChange={(e) => setMaxCost(e.target.value)}
-                placeholder="Max cost"
-                className="border border-gray-300 rounded px-3 py-2"
-              />
-              <input
-                type="date"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className="border border-gray-300 rounded px-3 py-2"
-              />
-              <div className="flex items-center gap-2">
-                <input
-                  type="date"
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="border border-gray-300 rounded px-3 py-2 w-full"
-                />
+
+              <div className="mt-3 flex justify-end">
                 <button
-                  onClick={resetFilters}
-                  className="border border-gray-300 rounded px-3 py-2 hover:bg-gray-100"
+                  onClick={saveBankDetails}
+                  disabled={savingBankDetails}
+                  className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-60"
                 >
-                  Reset
+                  {savingBankDetails ? "Saving..." : "Save Bank Details"}
                 </button>
               </div>
-            </div>
-            <p className="text-xs text-slate-500 mt-2">
-              Filtered registration amount total: Rs {filteredSummary.totalRegistrationAmount}
-            </p>
-          </section>
+            </section>
+          )}
 
-          <section className="rounded-xl bg-white p-4 shadow-sm md:p-5">
-            {loading ? (
-              <p className="text-sm text-slate-500">Loading enrollment details...</p>
-            ) : error ? (
-              <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>
-            ) : filteredStudents.length === 0 ? (
-              <p className="text-sm text-slate-500">No students enrolled yet.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full border-separate border-spacing-y-2 text-sm">
-                  <thead>
-                    <tr className="text-left text-slate-500">
-                      <th className="px-3 py-2">Student Name</th>
-                      <th className="px-3 py-2">Date</th>
-                      <th className="px-3 py-2">Registration Cost</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredStudents.map((student) => (
-                      <tr key={student._id} className="rounded-lg bg-slate-50">
-                        <td className="px-3 py-2 font-medium text-slate-800">
-                          <div>{student.name}</div>
-                          {student.class && (
-                            <div className="text-xs text-slate-500">{student.class}</div>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-slate-700">{formatDate(student.enrolledAt)}</td>
-                        <td className="px-3 py-2 text-slate-700">Rs {student.registrationAmount}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
+          {tab === "staff-activity" && user?.role === "staff" && (
+            <>
+              <section className="rounded-xl bg-white p-4 shadow-sm md:p-5 mb-4 max-w-4xl">
+                <h2 className="text-lg font-semibold mb-2">Attendance</h2>
+                <p className="text-sm text-slate-500 mb-4">First Check In, then Check Out.</p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">Date</label>
+                    <div className="w-full border border-gray-300 rounded px-3 py-2 bg-slate-50 text-slate-800">
+                      {currentActivityForDate?.date || todayDateKey()}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">Check In</label>
+                    <div className="w-full border border-gray-300 rounded px-3 py-2 bg-slate-50 text-slate-800">
+                      {formatTime12Hour(currentActivityForDate?.checkIn)}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">Check Out</label>
+                    <div className="w-full border border-gray-300 rounded px-3 py-2 bg-slate-50 text-slate-800">
+                      {formatTime12Hour(currentActivityForDate?.checkOut)}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap justify-end gap-2">
+                  <button
+                    onClick={() => markAttendance("check-in")}
+                    disabled={savingStaffActivity}
+                    className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+                  >
+                    {savingStaffActivity ? "Saving..." : "Check In Now"}
+                  </button>
+                  <button
+                    onClick={() => markAttendance("check-out")}
+                    disabled={savingStaffActivity}
+                    className="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+                  >
+                    {savingStaffActivity ? "Saving..." : "Check Out Now"}
+                  </button>
+                </div>
+              </section>
+
+              <section className="rounded-xl bg-white p-4 shadow-sm md:p-5 mb-4 max-w-4xl">
+                <h2 className="text-lg font-semibold mb-2">Daily Report</h2>
+                <p className="text-sm text-slate-500 mb-4">Add report for the selected date.</p>
+
+                <div className="mb-3 max-w-xs">
+                  <label className="block text-xs text-slate-500 mb-1">Report Date</label>
+                  <input
+                    type="date"
+                    value={activityDate}
+                    onChange={(e) => setActivityDate(e.target.value)}
+                    className="w-full border border-gray-300 rounded px-3 py-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">Report of the day</label>
+                  <textarea
+                    rows={5}
+                    value={dailyReport}
+                    onChange={(e) => setDailyReport(e.target.value)}
+                    placeholder="Write what work you completed today..."
+                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                  />
+                </div>
+
+                <div className="mt-3 flex justify-end">
+                  <button
+                    onClick={saveDailyReport}
+                    disabled={savingStaffActivity}
+                    className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+                  >
+                    {savingStaffActivity ? "Saving..." : "Save Daily Report"}
+                  </button>
+                </div>
+              </section>
+
+              <section className="rounded-xl bg-white p-4 shadow-sm md:p-5 max-w-5xl">
+                <h3 className="text-base font-semibold mb-3">My Submitted Activity</h3>
+
+                {loadingStaffActivity ? (
+                  <p className="text-sm text-slate-500">Loading activity...</p>
+                ) : staffActivities.length === 0 ? (
+                  <p className="text-sm text-slate-500">No attendance/report added yet.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border-separate border-spacing-y-2 text-sm">
+                      <thead>
+                        <tr className="text-left text-slate-500">
+                          <th className="px-3 py-2">Date</th>
+                          <th className="px-3 py-2">Check In</th>
+                          <th className="px-3 py-2">Check Out</th>
+                          <th className="px-3 py-2">Report</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {staffActivities.map((row) => (
+                          <tr key={row._id} className="rounded-lg bg-slate-50 align-top">
+                            <td className="px-3 py-2 text-slate-700">{row.date || "-"}</td>
+                            <td className="px-3 py-2 text-slate-700">{formatTime12Hour(row.checkIn)}</td>
+                            <td className="px-3 py-2 text-slate-700">{formatTime12Hour(row.checkOut)}</td>
+                            <td className="px-3 py-2 text-slate-700 whitespace-pre-wrap">{row.report || "-"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            </>
+          )}
         </main>
       </div>
     </div>

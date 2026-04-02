@@ -1,8 +1,10 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { useAppDialog } from "../component/AppDialog"
 
 const Examination = () => {
+const { showAlert, showConfirm } = useAppDialog()
 
 const [type,setType] = useState("mcq")
 const [open,setOpen] = useState(false)
@@ -48,7 +50,7 @@ setScheduleInput(date.toISOString().slice(0,16))
 const saveSchedule = async ()=>{
 
 if(!scheduleInput){
-alert("Please select schedule time")
+await showAlert("Please select schedule time", { title: "Exam Schedule" })
 return
 }
 
@@ -63,13 +65,13 @@ body:JSON.stringify({ scheduleAt: new Date(scheduleInput).toISOString() })
 const data = await res.json()
 
 if(!res.ok){
-alert(data.message || "Could not save schedule")
+await showAlert(data.message || "Could not save schedule", { title: "Exam Schedule" })
 return
 }
 
 setSavedSchedule(data.scheduleAt)
 setScheduleInput(new Date(data.scheduleAt).toISOString().slice(0,16))
-alert("Schedule saved")
+await showAlert("Schedule saved", { title: "Exam Schedule" })
 
 }
 
@@ -82,19 +84,23 @@ method:"DELETE"
 const data = await res.json()
 
 if(!res.ok){
-alert(data.message || "Could not reset schedule")
+await showAlert(data.message || "Could not reset schedule", { title: "Exam Schedule" })
 return
 }
 
 setSavedSchedule(null)
 setScheduleInput("")
-alert("Schedule reset")
+await showAlert("Schedule reset", { title: "Exam Schedule" })
 
 }
 
 const deleteQuestion = async (id)=>{
 
-const confirmed = window.confirm("Delete this question?")
+const confirmed = await showConfirm("Delete this question?", {
+title: "Delete Question",
+confirmLabel: "Delete",
+cancelLabel: "Cancel",
+})
 
 if(!confirmed) return
 
@@ -105,7 +111,7 @@ method:"DELETE"
 const data = await res.json()
 
 if(!res.ok){
-alert(data.message || "Could not delete question")
+await showAlert(data.message || "Could not delete question", { title: "Delete Question" })
 return
 }
 
@@ -119,12 +125,12 @@ const handleSubmit = async(e)=>{
 e.preventDefault()
 
 if(!form.question.trim()){
-alert("Question is required")
+await showAlert("Question is required", { title: "Create Question" })
 return
 }
 
 if(type === "mcq" && !form.answer.trim()){
-alert("Correct answer required")
+await showAlert("Correct answer required", { title: "Create Question" })
 return
 }
 
@@ -142,7 +148,7 @@ type
 const data = await res.json()
 
 if(!res.ok){
-alert(data.message || "Error")
+await showAlert(data.message || "Error", { title: "Create Question" })
 return
 }
 

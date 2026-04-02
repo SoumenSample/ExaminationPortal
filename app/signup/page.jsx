@@ -4,14 +4,21 @@ import Image from "next/image";
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import logo from "../dashboard/WhatsApp Image 2026-03-18 at 9.04.15 PM.jpeg"
+import { useAppDialog } from "../component/AppDialog"
 
 const initialForm = {
   name:"",
   email:"",
   phone:"",
-  address:"",
+  addressLine1:"",
+  addressLine2:"",
+  district:"",
+  pincode:"",
+  state:"",
   aadhaar:"",
   age:"",
+  rollNo:"",
+  section:"",
   class:"",
   registrationSchool:"",
   registrationType:"individual",
@@ -22,6 +29,7 @@ const initialForm = {
 
 export default function Signup() {
   const router = useRouter();
+  const { showAlert } = useAppDialog()
   const [role, setRole] = useState("student")
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -63,6 +71,23 @@ export default function Signup() {
       }
     }
   }, [form.age, role])
+
+  useEffect(() => {
+    if (role !== "student") return
+
+    if (form.registrationType !== "school") return
+
+    const selectedSchool = schools.find((school) => String(school._id) === String(form.registrationSchool))
+    if (!selectedSchool) return
+
+    const autoReferralCode = selectedSchool.referralCode || ""
+    if (!autoReferralCode) return
+
+    setForm((prev) => ({
+      ...prev,
+      referralCode: autoReferralCode,
+    }))
+  }, [role, form.registrationType, form.registrationSchool, schools])
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -140,6 +165,16 @@ export default function Signup() {
         return
       }
 
+      if (!form.addressLine1.trim() || !form.addressLine2.trim() || !form.district.trim() || !form.pincode.trim() || !form.state.trim()) {
+        setMessage("Address Line 1, Address Line 2, District, Pincode and State are required")
+        return
+      }
+
+      if (!/^\d{6}$/.test(form.pincode.trim())) {
+        setMessage("Pincode must be a 6-digit number")
+        return
+      }
+
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -159,7 +194,7 @@ export default function Signup() {
 
       const generatedCode = data.uniqueCode || data.referralCode
 
-      alert(`${data.message}\n${generatedCode ? `Your unique code: ${generatedCode}` : ""}`)
+      await showAlert(`${data.message}\n${generatedCode ? `Your unique code: ${generatedCode}` : ""}`, { title: "Signup" })
 
       setForm(initialForm)
       setRole("student")
@@ -178,7 +213,7 @@ export default function Signup() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
       <div className="bg-white text-slate-900 shadow-2xl rounded-xl p-8 w-full max-w-md">
         <h2 className="text-2xl font-bold text-slate-900 text-center mb-2">
           Create Account
@@ -345,6 +380,24 @@ export default function Signup() {
                   ))}
                 </select>
 
+                <input
+                  name="rollNo"
+                  placeholder="Roll No"
+                  className="w-full border border-slate-300 bg-white p-2 rounded text-slate-900 placeholder:text-slate-400"
+                  value={form.rollNo}
+                  onChange={handleChange}
+                  required
+                />
+
+                <input
+                  name="section"
+                  placeholder="Section (e.g. A)"
+                  className="w-full border border-slate-300 bg-white p-2 rounded text-slate-900 placeholder:text-slate-400"
+                  value={form.section}
+                  onChange={handleChange}
+                  required
+                />
+
                 <select
                   name="registrationType"
                   className="w-full border border-slate-300 bg-white p-2 rounded text-slate-900"
@@ -390,11 +443,18 @@ export default function Signup() {
 
                 <input
                   name="referralCode"
-                  placeholder="Referral Code (optional)"
+                  placeholder={form.registrationType === "school" ? "Referral Code (Auto from school)" : "Referral Code (optional)"}
                   className="w-full border border-slate-300 bg-white p-2 rounded text-slate-900 placeholder:text-slate-400"
                   value={form.referralCode}
                   onChange={handleChange}
+                  readOnly={form.registrationType === "school"}
                 />
+
+                {form.registrationType === "school" && (
+                  <p className="text-xs text-emerald-700 -mt-2">
+                    School referral code is auto-applied from the selected school.
+                  </p>
+                )}
 
                 {registrationFee > 0 && (
                   <div className="bg-blue-50 border border-blue-200 p-3 rounded">
@@ -426,14 +486,7 @@ export default function Signup() {
                   className="w-full border border-slate-300 bg-white p-2 rounded text-slate-900 placeholder:text-slate-400"
                   value={form.phone}
                   onChange={handleChange}
-                />
-
-                <input
-                  name="address"
-                  placeholder="Address"
-                  className="w-full border border-slate-300 bg-white p-2 rounded text-slate-900 placeholder:text-slate-400"
-                  value={form.address}
-                  onChange={handleChange}
+                  required
                 />
 
                 <p className="text-xs text-slate-500">
@@ -441,6 +494,54 @@ export default function Signup() {
                 </p>
               </>
             )}
+
+            <input
+              name="addressLine1"
+              placeholder="Address Line 1"
+              className="w-full border border-slate-300 bg-white p-2 rounded text-slate-900 placeholder:text-slate-400"
+              value={form.addressLine1}
+              onChange={handleChange}
+              required
+            />
+
+            <input
+              name="addressLine2"
+              placeholder="Address Line 2"
+              className="w-full border border-slate-300 bg-white p-2 rounded text-slate-900 placeholder:text-slate-400"
+              value={form.addressLine2}
+              onChange={handleChange}
+              required
+            />
+
+            <input
+              name="district"
+              placeholder="District"
+              className="w-full border border-slate-300 bg-white p-2 rounded text-slate-900 placeholder:text-slate-400"
+              value={form.district}
+              onChange={handleChange}
+              required
+            />
+
+            <input
+              name="pincode"
+              placeholder="Pincode"
+              inputMode="numeric"
+              pattern="\d{6}"
+              maxLength={6}
+              className="w-full border border-slate-300 bg-white p-2 rounded text-slate-900 placeholder:text-slate-400"
+              value={form.pincode}
+              onChange={handleChange}
+              required
+            />
+
+            <input
+              name="state"
+              placeholder="State"
+              className="w-full border border-slate-300 bg-white p-2 rounded text-slate-900 placeholder:text-slate-400"
+              value={form.state}
+              onChange={handleChange}
+              required
+            />
 
             <div className="relative">
               <input

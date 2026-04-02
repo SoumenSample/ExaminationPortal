@@ -1,8 +1,10 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
+import { useAppDialog } from "../component/AppDialog"
 
 const Notification = () => {
+  const { showAlert, showConfirm } = useAppDialog()
   const [notifications, setNotifications] = useState([])
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -62,12 +64,12 @@ const Notification = () => {
     e.preventDefault()
 
     if (!form.title || !form.message) {
-      alert("Please fill in title and message")
+      await showAlert("Please fill in title and message", { title: "Notification" })
       return
     }
 
     if (!form.sendToAll && !form.recipientId) {
-      alert("Please select a recipient or send to all")
+      await showAlert("Please select a recipient or send to all", { title: "Notification" })
       return
     }
 
@@ -108,11 +110,11 @@ const Notification = () => {
       const data = await res.json()
 
       if (!res.ok) {
-        alert(data.message || "Failed to send notification")
+        await showAlert(data.message || "Failed to send notification", { title: "Notification" })
         return
       }
 
-      alert("Notification sent successfully!")
+      await showAlert("Notification sent successfully!", { title: "Notification" })
 
       // Reset form
       setForm({
@@ -132,14 +134,18 @@ const Notification = () => {
       setNotifications(notifData)
     } catch (error) {
       console.error("Error sending notification:", error)
-      alert("Error sending notification")
+      await showAlert("Error sending notification", { title: "Notification" })
     } finally {
       setSending(false)
     }
   }
 
   const handleDeleteNotification = async (id) => {
-    const confirmed = window.confirm("Delete this notification?")
+    const confirmed = await showConfirm("Delete this notification?", {
+      title: "Delete Notification",
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+    })
     if (!confirmed) return
 
     try {
@@ -148,13 +154,13 @@ const Notification = () => {
       })
 
       if (!res.ok) {
-        alert("Failed to delete notification")
+        await showAlert("Failed to delete notification", { title: "Delete Notification" })
         return
       }
 
       // Remove from list
       setNotifications(notifications.filter((n) => n._id !== id))
-      alert("Notification deleted")
+      await showAlert("Notification deleted", { title: "Delete Notification" })
     } catch (error) {
       console.error("Error deleting notification:", error)
     }

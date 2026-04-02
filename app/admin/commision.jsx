@@ -1,8 +1,10 @@
 "use client"
 
 import React, { useEffect, useMemo, useState } from "react"
+import { useAppDialog } from "../component/AppDialog"
 
 const Commission = () => {
+const { showAlert } = useAppDialog()
 
 const [users,setUsers] = useState([])
 const [loading,setLoading] = useState(true)
@@ -29,6 +31,22 @@ const commissionRows = useMemo(()=>{
   )
 },[users])
 
+const getPaymentStatusClass = (status)=>{
+  if(status === "paid"){
+    return "border-green-600"
+  }
+
+  return "border-orange-600"
+}
+
+const getPaymentStatusStyle = (status)=>{
+  if(status === "paid"){
+    return { backgroundColor: "#16a34a", color: "#ffffff" }
+  }
+
+  return { backgroundColor: "#ea580c", color: "#ffffff" }
+}
+
 const handlePaymentStatusChange = async(userId,nextStatus)=>{
   try{
     setStatusUpdatingId(userId)
@@ -46,7 +64,7 @@ const handlePaymentStatusChange = async(userId,nextStatus)=>{
     await fetchUsers()
   }catch(error){
     console.error(error)
-    alert("Could not update payment status")
+    await showAlert("Could not update payment status", { title: "Commission" })
   }finally{
     setStatusUpdatingId(null)
   }
@@ -118,10 +136,11 @@ style={{ WebkitOverflowScrolling: "touch", scrollbarWidth: "thin", scrollbarColo
 value={user.paymentStatus || "pending"}
 onChange={(e)=>handlePaymentStatusChange(user._id, e.target.value)}
 disabled={statusUpdatingId === user._id}
-className="border border-gray-300 rounded px-2 py-1 bg-white"
+className={`border rounded px-2 py-1 font-medium transition-colors ${getPaymentStatusClass(user.paymentStatus || "pending")}`}
+style={getPaymentStatusStyle(user.paymentStatus || "pending")}
 >
-<option value="pending">Pending</option>
-<option value="paid">Paid</option>
+<option value="pending" className="text-black bg-white">Pending</option>
+<option value="paid" className="text-black bg-white">Paid</option>
 </select>
 </td>
 

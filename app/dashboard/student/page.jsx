@@ -2,8 +2,10 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useAppDialog } from "../../component/AppDialog"
 
 function DashboardContent(){
+const { showAlert } = useAppDialog()
 
 const router = useRouter()
 const searchParams = useSearchParams()
@@ -142,7 +144,7 @@ score += q.marks
 const email = user?.email
 
 if(!email){
-alert("User email not loaded. Please refresh and try again.")
+await showAlert("User email not loaded. Please refresh and try again.", { title: "Exam" })
 return
 }
 
@@ -165,12 +167,12 @@ if(!response.ok){
 if(response.status === 409){
 setHasSubmittedExam(true)
 setStartExam(false)
-alert(payload.message || "You can submit exam only once")
+await showAlert(payload.message || "You can submit exam only once", { title: "Exam" })
 router.push("/dashboard")
 return
 }
 
-alert(payload.message || payload.error || "Could not submit result")
+await showAlert(payload.message || payload.error || "Could not submit result", { title: "Exam" })
 return
 }
 

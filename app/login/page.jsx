@@ -4,10 +4,12 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import logo from "../dashboard/WhatsApp Image 2026-03-18 at 9.04.15 PM.jpeg"
+import { useAppDialog } from "../component/AppDialog"
 
 export default function Login(){
 
   const router = useRouter()
+  const { showAlert } = useAppDialog()
 
   const [loginId, setLoginId] = useState("")
   const [password, setPassword] = useState("")
@@ -64,7 +66,7 @@ export default function Login(){
         return
       }
 
-      alert("Login successful")
+      await showAlert("Login successful", { title: "Login" })
       redirectByRole(data)
 
     } catch (err) {
@@ -139,7 +141,7 @@ export default function Login(){
         return
       }
 
-      alert("Login successful")
+      await showAlert("Login successful", { title: "Login" })
       redirectByRole(data)
     } catch (err) {
       setError("Something went wrong: " + err.message)

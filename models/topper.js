@@ -14,5 +14,15 @@ const itemSchema = new mongoose.Schema(
   { timestamps: true }
 )
 
-export default mongoose.models.Item ||
-  mongoose.model("Item", itemSchema)
+const existingModel = mongoose.models.Item
+
+if (existingModel && !existingModel.schema.path("ageGroupCategory")) {
+  existingModel.schema.add({
+    ageGroupCategory: {
+      type: String,
+      enum: ["8-12", "13-16", "17-22"],
+    },
+  })
+}
+
+export default existingModel || mongoose.model("Item", itemSchema)

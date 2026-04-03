@@ -1,6 +1,7 @@
 import { connectDB } from "../../../../lib/db"
 import User from "@/models/User"
 import bcrypt from "bcryptjs"
+import { buildSessionCookie, createSessionToken } from "@/lib/session"
 
 export async function POST(req){
 
@@ -68,7 +69,7 @@ if(!user){
     )
   }
   
-  return Response.json({
+  const responseBody = {
     message:"Login successful",
     userId: altUser._id,
     email: altUser.email,
@@ -76,6 +77,13 @@ if(!user){
     name: altUser.name,
     role: altUser.role,
     referralCode: altUser.referralCode
+  }
+
+  const sessionToken = createSessionToken({ userId: altUser._id, role: altUser.role })
+  return Response.json(responseBody, {
+    headers: {
+      "Set-Cookie": buildSessionCookie(sessionToken),
+    },
   })
 }
 
@@ -111,7 +119,7 @@ if(!valid){
   )
 }
 
-return Response.json({
+const responseBody = {
   message:"Login successful",
   userId: user._id,
   email: user.email,
@@ -122,6 +130,14 @@ return Response.json({
   class: user.class,
   registrationType: user.registrationType,
   registrationFee: user.registrationFee
+}
+
+const sessionToken = createSessionToken({ userId: user._id, role: user.role })
+
+return Response.json(responseBody, {
+  headers: {
+    "Set-Cookie": buildSessionCookie(sessionToken),
+  },
 })
 
 } catch (error) {

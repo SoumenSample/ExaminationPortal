@@ -25,7 +25,25 @@ marks:{
 type:Number
 },
 
+ageSlab:{
+type:String,
+enum:["8-12","13-16","17-22"],
+required:true
+},
+
 },{timestamps:true})
 
-export default mongoose.models.Question ||
+const existingQuestionModel = mongoose.models.Question
+
+if(existingQuestionModel && !existingQuestionModel.schema.path("ageSlab")){
+existingQuestionModel.schema.add({
+ageSlab:{
+type:String,
+enum:["8-12","13-16","17-22"],
+required:true
+}
+})
+}
+
+export default existingQuestionModel ||
 mongoose.model("Question",QuestionSchema)

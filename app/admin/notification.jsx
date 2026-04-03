@@ -3,6 +3,40 @@
 import React, { useEffect, useState } from "react"
 import { useAppDialog } from "../component/AppDialog"
 
+function buildAllUserNotifications(rows) {
+  const list = Array.isArray(rows) ? rows : []
+  const map = new Map()
+
+  for (const item of list) {
+    const secondBucket = item?.createdAt
+      ? new Date(item.createdAt).toISOString().slice(0, 19)
+      : ""
+
+    const key =
+      item?.broadcastId ||
+      `${item?.title || ""}__${item?.message || ""}__${item?.type || "info"}__${secondBucket}`
+
+    const existing = map.get(key)
+
+    if (!existing) {
+      map.set(key, {
+        ...item,
+        groupKey: key,
+        recordIds: [item._id],
+        recipientCount: 1,
+      })
+      continue
+    }
+
+    existing.recordIds.push(item._id)
+    existing.recipientCount += 1
+  }
+
+  return [...map.values()]
+    .filter((item) => item?.audience === "all" || item?.broadcastId || item.recipientCount > 1)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+}
+
 const Notification = () => {
   const { showAlert, showConfirm } = useAppDialog()
   const [notifications, setNotifications] = useState([])
@@ -27,7 +61,7 @@ const Notification = () => {
       try {
         const res = await fetch("/api/notification")
         const data = await res.json()
-        setNotifications(data)
+        setNotifications(buildAllUserNotifications(data))
       } catch (error) {
         console.error("Error fetching notifications:", error)
       }
@@ -131,7 +165,7 @@ const Notification = () => {
       // Refresh notifications
       const notifRes = await fetch("/api/notification")
       const notifData = await notifRes.json()
-      setNotifications(notifData)
+      setNotifications(buildAllUserNotifications(notifData))
     } catch (error) {
       console.error("Error sending notification:", error)
       await showAlert("Error sending notification", { title: "Notification" })
@@ -140,7 +174,9 @@ const Notification = () => {
     }
   }
 
-  const handleDeleteNotification = async (id) => {
+  const handleDeleteNotification = async (notification) => {
+    const ids = notification?.recordIds?.length ? notification.recordIds : [notification?._id]
+
     const confirmed = await showConfirm("Delete this notification?", {
       title: "Delete Notification",
       confirmLabel: "Delete",
@@ -149,17 +185,22 @@ const Notification = () => {
     if (!confirmed) return
 
     try {
-      const res = await fetch(`/api/notification/${id}`, {
-        method: "DELETE",
-      })
+      const responses = await Promise.all(
+        ids.map((id) =>
+          fetch(`/api/notification/${id}`, {
+            method: "DELETE",
+          })
+        )
+      )
 
-      if (!res.ok) {
+      const failed = responses.some((res) => !res.ok)
+      if (failed) {
         await showAlert("Failed to delete notification", { title: "Delete Notification" })
         return
       }
 
       // Remove from list
-      setNotifications(notifications.filter((n) => n._id !== id))
+      setNotifications(notifications.filter((n) => n.groupKey !== notification.groupKey))
       await showAlert("Notification deleted", { title: "Delete Notification" })
     } catch (error) {
       console.error("Error deleting notification:", error)
@@ -373,13 +414,13 @@ const Notification = () => {
           <p>Loading notifications...</p>
         ) : filteredNotifications.length === 0 ? (
           <p className="text-gray-500 text-center py-8">
-            No notifications found
+            No all-user notifications found
           </p>
         ) : (
           <div className="space-y-3">
             {filteredNotifications.map((notif) => (
               <div
-                key={notif._id}
+                key={notif.groupKey || notif._id}
                 className={`p-4 rounded border-l-4 flex justify-between items-start ${
                   notif.type === "info"
                     ? "bg-blue-50 border-blue-400"
@@ -401,18 +442,16 @@ const Notification = () => {
                       {notif.type}
                     </span>
                   </div>
-                  <p className="text-sm mt-1 text-gray-700">{notif.message}</p>
+                  <p className="text-sm mt-1 text-gray-700">Notification: {notif.message}</p>
                   <div className="text-xs text-gray-500 mt-2">
-                    To:{" "}
-                    <span className="font-medium">
-                      {notif.recipientId?.name} ({notif.recipientId?.email})
-                    </span>
+                    Sent to all users
+                    {` • Recipients: ${notif.recipientCount || 0}`}
                     {" • "}
                     {new Date(notif.createdAt).toLocaleString()}
                   </div>
                 </div>
                 <button
-                  onClick={() => handleDeleteNotification(notif._id)}
+                  onClick={() => handleDeleteNotification(notif)}
                   className="ml-4 text-red-600 hover:text-red-800 font-medium text-sm"
                 >
                   Delete

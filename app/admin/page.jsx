@@ -123,6 +123,7 @@ import Topper from "./topper"
 import ReportsDashboard from "./reportsDashboard"
 import ChatSupport from "./chatSupport"
 import StaffActivity from "./staffActivity"
+import Notification from "./notification"
 
 export default function AdminPanel(){
 
@@ -139,6 +140,7 @@ export default function AdminPanel(){
   { name: "Commission Calculation", value: "commission" },
   { name: "Link Management", value: "link" },
   { name: "Topper list", value: "topper" },
+  { name: "Notifications", value: "notifications" },
   { name: "Reports Dashboard", value: "reports" },
   { name: "Chat Support", value: "chat-support" },
   { name: "Staff Activity", value: "staff-activity" },
@@ -309,6 +311,8 @@ export default function AdminPanel(){
           {tab === "link" && <LinkPage />}
           
           {tab === "topper" && <Topper />}
+
+          {tab === "notifications" && <Notification />}
 
           {tab === "reports" && <ReportsDashboard />}
 

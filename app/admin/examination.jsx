@@ -3,6 +3,12 @@
 import React, { useState, useEffect } from "react"
 import { useAppDialog } from "../component/AppDialog"
 
+const AGE_SLAB_OPTIONS = [
+{ value: "8-12", label: "Age 8-12 years" },
+{ value: "13-16", label: "Age 13-16 years" },
+{ value: "17-22", label: "Age 17-22 years" },
+]
+
 const Examination = () => {
 const { showAlert, showConfirm } = useAppDialog()
 
@@ -11,25 +17,82 @@ const [open,setOpen] = useState(false)
 const [questions,setQuestions] = useState([])
 const [scheduleInput,setScheduleInput] = useState("")
 const [savedSchedule,setSavedSchedule] = useState(null)
+const [activeCategory,setActiveCategory] = useState("8-12")
+const [savingQuestion,setSavingQuestion] = useState(false)
+const [modalMode,setModalMode] = useState("create")
+const [editingQuestionId,setEditingQuestionId] = useState("")
 
 const [form,setForm] = useState({
 question:"",
 answer:"",
 time:"",
 marks:"",
+ageSlab:"8-12",
 })
+
+const isViewMode = modalMode === "view"
+const isEditMode = modalMode === "edit"
 
 const handleChange = (e)=>{
 setForm({...form,[e.target.name]:e.target.value})
 }
 
+const fetchQuestions = async ()=>{
+try{
+const res = await fetch("/api/question")
+const data = await res.json()
+setQuestions(Array.isArray(data) ? data : [])
+}catch{
+setQuestions([])
+}
+}
+
+const openCreateQuestionModal = (ageSlab)=>{
+setModalMode("create")
+setEditingQuestionId("")
+setType("mcq")
+setForm({
+question:"",
+answer:"",
+time:"",
+marks:"",
+ageSlab,
+})
+setOpen(true)
+}
+
+const openViewQuestionModal = (question)=>{
+setModalMode("view")
+setEditingQuestionId(question._id)
+setType(question.type || "mcq")
+setForm({
+question: question.question || "",
+answer: question.answer || "",
+time: String(question.time ?? ""),
+marks: String(question.marks ?? ""),
+ageSlab: question.ageSlab || "8-12",
+})
+setOpen(true)
+}
+
+const openEditQuestionModal = (question)=>{
+setModalMode("edit")
+setEditingQuestionId(question._id)
+setType(question.type || "mcq")
+setForm({
+question: question.question || "",
+answer: question.answer || "",
+time: String(question.time ?? ""),
+marks: String(question.marks ?? ""),
+ageSlab: question.ageSlab || "8-12",
+})
+setOpen(true)
+}
+
 
 // FETCH ALL QUESTIONS FROM DATABASE
 useEffect(()=>{
-
-fetch("/api/question")
-.then(res=>res.json())
-.then(data=>setQuestions(data))
+fetchQuestions()
 
 },[])
 
@@ -124,18 +187,33 @@ setQuestions(prev=>prev.filter((q)=>q._id !== id))
 const handleSubmit = async(e)=>{
 e.preventDefault()
 
+if(savingQuestion) return
+if(isViewMode) return
+
 if(!form.question.trim()){
-await showAlert("Question is required", { title: "Create Question" })
+await showAlert("Question is required", { title: isEditMode ? "Edit Question" : "Create Question" })
 return
 }
 
 if(type === "mcq" && !form.answer.trim()){
-await showAlert("Correct answer required", { title: "Create Question" })
+await showAlert("Correct answer required", { title: isEditMode ? "Edit Question" : "Create Question" })
 return
 }
 
-const res = await fetch("/api/question",{
-method:"POST",
+if(!form.ageSlab){
+await showAlert("Age slab is required", { title: isEditMode ? "Edit Question" : "Create Question" })
+return
+}
+
+setSavingQuestion(true)
+
+try{
+
+const endpoint = isEditMode ? `/api/question?id=${editingQuestionId}` : "/api/question"
+const method = isEditMode ? "PATCH" : "POST"
+
+const res = await fetch(endpoint,{
+method,
 headers:{
 "Content-Type":"application/json"
 },
@@ -148,13 +226,31 @@ type
 const data = await res.json()
 
 if(!res.ok){
-await showAlert(data.message || "Error", { title: "Create Question" })
+await showAlert(
+data.message || data.error || (isEditMode ? "Could not update question" : "Could not create question"),
+{ title: isEditMode ? "Edit Question" : "Create Question" }
+)
 return
 }
 
 
-// ADD NEW QUESTION TO LIST
-setQuestions([data.question,...questions])
+// ADD/UPDATE QUESTION IN LIST
+if(data?.question){
+if(isEditMode){
+setQuestions((prev)=>prev.map((item)=> item._id === data.question._id ? data.question : item))
+}else{
+setQuestions((prev)=>[data.question,...prev])
+}
+setActiveCategory(data.question.ageSlab || form.ageSlab)
+}else{
+await fetchQuestions()
+setActiveCategory(form.ageSlab)
+}
+
+await showAlert(
+isEditMode ? "Question updated successfully" : "Question saved successfully",
+{ title: isEditMode ? "Edit Question" : "Create Question" }
+)
 
 
 setForm({
@@ -162,9 +258,21 @@ question:"",
 answer:"",
 time:"",
 marks:"",
+ageSlab:activeCategory,
 })
+setEditingQuestionId("")
+setModalMode("create")
 
 setOpen(false)
+
+}catch{
+await showAlert(
+isEditMode ? "Could not update question. Please try again." : "Could not save question. Please try again.",
+{ title: isEditMode ? "Edit Question" : "Create Question" }
+)
+}finally{
+setSavingQuestion(false)
+}
 
 }
 
@@ -218,24 +326,55 @@ Saved schedule: {new Date(savedSchedule).toLocaleString()}
 
 <div className="flex justify-end mb-4">
 
+<div className="w-full flex flex-wrap gap-2">
+{AGE_SLAB_OPTIONS.map((category)=>(
 <button
-onClick={()=>setOpen(true)}
-className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+key={category.value}
+type="button"
+onClick={()=>setActiveCategory(category.value)}
+className={`px-4 py-2 rounded border ${activeCategory === category.value ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-700 border-gray-300"}`}
 >
-Add Question
+{category.label}
 </button>
+))}
+</div>
 
 </div>
 
 
 {/* Question List */}
 
-<div className="space-y-4 ">
+<div className="space-y-5">
 
-{questions.map((q,index)=>(
+{AGE_SLAB_OPTIONS.filter((category)=>category.value === activeCategory).map((category)=>{
+const categoryQuestions = questions.filter((q)=>q.ageSlab === category.value)
 
-<div key={q._id || index} className="border p-4 rounded shadow">
+return (
+<div
+key={category.value}
+className="border rounded-lg p-4 bg-blue-50 border-blue-200"
+>
+<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+<div>
+<h3 className="font-semibold text-lg">{category.label}</h3>
+<p className="text-sm text-gray-600">Question Set ({categoryQuestions.length})</p>
+</div>
 
+<button
+type="button"
+onClick={()=>openCreateQuestionModal(category.value)}
+className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+>
+Add Question In This Category
+</button>
+</div>
+
+{categoryQuestions.length === 0 ? (
+<p className="text-sm text-gray-500">No questions added for this age category yet.</p>
+) : (
+<div className="space-y-4">
+{categoryQuestions.map((q,index)=>(
+<div key={q._id || index} className="border p-4 rounded shadow-sm bg-white">
 <p className="font-semibold">{q.question}</p>
 
 <p className="text-sm text-gray-600">
@@ -256,17 +395,39 @@ Time: {q.time}
 Marks: {q.marks}
 </p>
 
+<div className="mt-3 flex flex-wrap gap-2">
+<button
+type="button"
+onClick={()=>openViewQuestionModal(q)}
+className="bg-slate-600 text-white px-3 py-1 rounded hover:bg-slate-700"
+>
+View
+</button>
+
+<button
+type="button"
+onClick={()=>openEditQuestionModal(q)}
+className="bg-amber-500 text-white px-3 py-1 rounded hover:bg-amber-600"
+>
+Edit
+</button>
+
 <button
 type="button"
 onClick={()=>deleteQuestion(q._id)}
-className="mt-3 bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
 >
-Delete Question
+Delete
 </button>
-
 </div>
 
+</div>
 ))}
+</div>
+)}
+</div>
+)
+})}
 
 </div>
 
@@ -280,7 +441,7 @@ Delete Question
 <div className="bg-white p-6 rounded-lg shadow w-full max-w-xl">
 
 <h2 className="text-xl font-semibold mb-4">
-Create Question
+{isViewMode ? "View Question" : isEditMode ? "Edit Question" : "Create Question"} ({AGE_SLAB_OPTIONS.find((option)=>option.value === form.ageSlab)?.label || "Category"})
 </h2>
 
 <form className="space-y-4" onSubmit={handleSubmit}>
@@ -289,10 +450,28 @@ Create Question
 className="w-full border p-2 rounded"
 value={type}
 onChange={(e)=>setType(e.target.value)}
+disabled={isViewMode}
 >
 <option value="mcq">MCQ</option>
 <option value="descriptive">Descriptive</option>
 </select>
+
+{isEditMode ? (
+<select
+name="ageSlab"
+className="w-full border p-2 rounded"
+value={form.ageSlab}
+onChange={handleChange}
+>
+{AGE_SLAB_OPTIONS.map((option)=>(
+<option key={option.value} value={option.value}>{option.label}</option>
+))}
+</select>
+) : (
+<div className="w-full border p-2 rounded bg-gray-50 text-gray-700">
+Category: {AGE_SLAB_OPTIONS.find((option)=>option.value === form.ageSlab)?.label || "-"}
+</div>
+)}
 
 <input
 name="question"
@@ -300,6 +479,7 @@ placeholder="Question"
 className="w-full border p-2 rounded"
 value={form.question}
 onChange={handleChange}
+disabled={isViewMode}
 />
 
 {type === "mcq" && (
@@ -310,6 +490,7 @@ placeholder="Correct Answer"
 className="w-full border p-2 rounded"
 value={form.answer}
 onChange={handleChange}
+disabled={isViewMode}
 />
 
 )}
@@ -320,6 +501,7 @@ placeholder="Time (minutes)"
 className="w-full border p-2 rounded"
 value={form.time}
 onChange={handleChange}
+disabled={isViewMode}
 />
 
 <input
@@ -328,23 +510,31 @@ placeholder="Marks"
 className="w-full border p-2 rounded"
 value={form.marks}
 onChange={handleChange}
+disabled={isViewMode}
 />
 
 <div className="flex gap-3">
 
+{!isViewMode && (
 <button
 type="submit"
+disabled={savingQuestion}
 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
 >
-Save
+{savingQuestion ? "Saving..." : isEditMode ? "Update" : "Save"}
 </button>
+)}
 
 <button
 type="button"
-onClick={()=>setOpen(false)}
+onClick={()=>{
+setOpen(false)
+setEditingQuestionId("")
+setModalMode("create")
+}}
 className="bg-gray-400 text-white px-4 py-2 rounded"
 >
-Cancel
+{isViewMode ? "Close" : "Cancel"}
 </button>
 
 </div>

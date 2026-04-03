@@ -1,34 +1,20 @@
 "use client"
 
 import { useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
-import Dashboard from "../../dashboard/page"
+import { useRouter } from "next/navigation"
 
 export default function StudentPage(){
 
-const router = useRouter()
-const params = useParams()
-const userId = params?.id
+	const router = useRouter()
 
-useEffect(()=>{
+	useEffect(() => {
+		router.replace("/dashboard")
+	}, [router])
 
-if(!userId || typeof userId !== "string"){
-router.replace("/login")
-return
-}
-
-localStorage.setItem("userId",userId)
-
-},[router,userId])
-
-if(!userId || typeof userId !== "string"){
-return (
-<div className="min-h-screen flex items-center justify-center">
-<p>Loading...</p>
-</div>
-)
-}
-
-return <Dashboard />
+	return (
+		<div className="min-h-screen flex items-center justify-center">
+			<p>Redirecting to dashboard...</p>
+		</div>
+	)
 
 }

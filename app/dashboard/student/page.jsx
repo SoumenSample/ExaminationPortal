@@ -4,6 +4,12 @@ import { Suspense, useCallback, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAppDialog } from "../../component/AppDialog"
 
+const AGE_SLAB_LABELS = {
+"8-12": "Age 8-12 years",
+"13-16": "Age 13-16 years",
+"17-22": "Age 17-22 years",
+}
+
 function DashboardContent(){
 const { showAlert } = useAppDialog()
 
@@ -15,6 +21,7 @@ const [open,setOpen] = useState(false)
 
 const [questions,setQuestions] = useState([])
 const [current,setCurrent] = useState(0)
+const [questionMessage,setQuestionMessage] = useState("")
 
 const [answer,setAnswer] = useState("")
 const [answers,setAnswers] = useState([])
@@ -84,16 +91,19 @@ return `${h}:${m}:${s}`
 // FETCH USER
 useEffect(()=>{
 
-const userId = localStorage.getItem("userId")
-
-if(!userId){
+fetch("/api/auth/session", { cache: "no-store" })
+.then(async (res)=>{
+if(!res.ok){
 router.push("/login")
-return
+return null
 }
-
-fetch(`/api/auth/user?id=${userId}`)
-.then(res=>res.json())
-.then(data=>setUser(data))
+return res.json()
+})
+.then((data)=>{
+if(data?.user){
+setUser(data.user)
+}
+})
 
 },[router])
 
@@ -105,12 +115,14 @@ useEffect(()=>{
 fetch("/api/question")
 .then(res=>res.json())
 .then(data=>{
+const rows = Array.isArray(data) ? data : []
+setQuestions(rows)
 
-setQuestions(data)
-console.log("Fetched questions:", data);
-
-if(data.length > 0){
-setTime(data[0].time *60)
+if(rows.length > 0){
+setTime(rows[0].time *60)
+setQuestionMessage("")
+}else{
+setQuestionMessage("No exam is available for your age slab yet.")
 
 // setAnswer("")
 // setTime(questions[next].time * 60)
@@ -179,7 +191,7 @@ return
 setHasSubmittedExam(true)
 setShowResult(true)
 
-},[questions,user,router])
+},[questions,user,router,showAlert])
 
 
 const nextQuestion = useCallback(()=>{
@@ -273,10 +285,13 @@ setResultPublished(true)
 
 // LOGOUT
 const logout = ()=>{
-
+fetch("/api/auth/session", { method: "DELETE" })
+.finally(()=>{
 localStorage.removeItem("userId")
-
+localStorage.removeItem("userRole")
+localStorage.removeItem("userName")
 router.push("/login")
+})
 
 }
 const addStudent = ()=>{
@@ -331,6 +346,22 @@ Email
 {user?.email}
 </p>
 
+<p className="text-sm text-gray-500">
+Age
+</p>
+
+<p className="font-medium mb-2">
+{user?.age || "-"}
+</p>
+
+<p className="text-sm text-gray-500">
+Age Slab
+</p>
+
+<p className="font-medium mb-3">
+{AGE_SLAB_LABELS[user?.ageSlab] || "-"}
+</p>
+
 
 {user?.uniqueCode && (
 
@@ -382,6 +413,10 @@ Online Examination
 Click the button below to start the exam.
 </p>
 
+{questionMessage && (
+<p className="text-sm text-orange-600 mb-4">{questionMessage}</p>
+)}
+
 {!resultPublished && !hasSubmittedExam && timeLeft > 0 && (
 <>
 <p className="text-sm text-gray-600 mb-2">
@@ -399,7 +434,7 @@ You have already submitted the exam. You can attempt only once.
 </p>
 )}
 
-{!resultPublished && !hasSubmittedExam && timeLeft === 0 &&<button
+{!resultPublished && !hasSubmittedExam && timeLeft === 0 && questions.length > 0 && <button
 onClick={()=>setStartExam(true)}
 className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
 >

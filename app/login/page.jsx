@@ -34,7 +34,7 @@ export default function Login(){
       router.push(`/staff/${data.userId}`)
     }
     else if (data.role === "student") {
-      router.push(`/student/${data.userId}`)
+      router.push("/dashboard")
     }
     else if (data.role === "admin") {
       router.push("/admin")

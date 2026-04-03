@@ -1,5 +1,6 @@
 import { connectDB } from "../../../../lib/db"
 import User from "@/models/User"
+import { getAgeSlabFromAge } from "@/lib/utils"
 
 async function generateUniqueCode(role){
 const prefix = role === "school" ? "SCH" : "STF"
@@ -48,6 +49,8 @@ return Response.json({
 _id:user._id,
 role:user.role,
 name:user.name,
+age:user.age,
+ageSlab:user.role === "student" ? getAgeSlabFromAge(user.age) : null,
 email:user.email,
 phone:user.phone,
 address:user.address,

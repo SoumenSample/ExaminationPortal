@@ -1,6 +1,7 @@
 import { connectDB } from "../../../../../lib/db"
 import OTP from "@/models/OTP"
 import User from "@/models/User"
+import { buildSessionCookie, createSessionToken } from "@/lib/session"
 
 function buildUserLoginResponse(user) {
   const baseResponse = {
@@ -110,7 +111,14 @@ export async function POST(req) {
 
     await OTP.deleteOne({ _id: otpRecord._id })
 
-    return Response.json(buildUserLoginResponse(user))
+    const responseBody = buildUserLoginResponse(user)
+    const sessionToken = createSessionToken({ userId: user._id, role: user.role })
+
+    return Response.json(responseBody, {
+      headers: {
+        "Set-Cookie": buildSessionCookie(sessionToken),
+      },
+    })
   } catch (error) {
     console.error("Verify Login OTP Error:", error)
     return Response.json(

@@ -5,7 +5,15 @@ export async function DELETE(req, { params }) {
   try {
     await connectDB();
 
-    const { id } = params;
+    const resolvedParams = await params;
+    const id = resolvedParams?.id;
+
+    if (!id) {
+      return Response.json(
+        { message: "Notification id is required" },
+        { status: 400 }
+      );
+    }
 
     const notification = await Notification.findByIdAndDelete(id);
 
@@ -30,8 +38,16 @@ export async function PATCH(req, { params }) {
   try {
     await connectDB();
 
-    const { id } = params;
+    const resolvedParams = await params;
+    const id = resolvedParams?.id;
     const { isRead } = await req.json();
+
+    if (!id) {
+      return Response.json(
+        { message: "Notification id is required" },
+        { status: 400 }
+      );
+    }
 
     const notification = await Notification.findByIdAndUpdate(
       id,

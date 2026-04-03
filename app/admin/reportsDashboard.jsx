@@ -57,7 +57,7 @@ export default function ReportsDashboard() {
   const [error, setError] = useState("")
 
   const [schoolReport, setSchoolReport] = useState([])
-  const [staffReport, setStaffReport] = useState([])
+  const [MemberReport, setMemberReport] = useState([])
 
   const [activeTab, setActiveTab] = useState("school")
   const [search, setSearch] = useState("")
@@ -70,20 +70,20 @@ export default function ReportsDashboard() {
         setLoading(true)
         setError("")
 
-        const [schoolRes, staffRes] = await Promise.all([
+        const [schoolRes, MemberRes] = await Promise.all([
           fetch("/api/admin/report/school-wise"),
-          fetch("/api/admin/report/staff-wise"),
+          fetch("/api/admin/report/member-wise"),
         ])
 
-        if (!schoolRes.ok || !staffRes.ok) {
+        if (!schoolRes.ok || !MemberRes.ok) {
           throw new Error("Failed to fetch report data")
         }
 
         const schoolData = await schoolRes.json()
-        const staffData = await staffRes.json()
+        const MemberData = await MemberRes.json()
 
         setSchoolReport(schoolData?.schoolReport || [])
-        setStaffReport(staffData?.staffReport || [])
+        setMemberReport(MemberData?.memberReport || MemberData?.MemberReport || [])
       } catch (err) {
         setError(err.message || "Error loading reports")
       } finally {
@@ -110,12 +110,12 @@ export default function ReportsDashboard() {
     })
   }, [schoolReport, search, minCount, maxCount])
 
-  const filteredStaff = useMemo(() => {
+  const filteredMember = useMemo(() => {
     const min = minCount === "" ? null : Number(minCount)
     const max = maxCount === "" ? null : Number(maxCount)
     const q = search.trim().toLowerCase()
 
-    return staffReport.filter((s) => {
+    return MemberReport.filter((s) => {
       const count = Number(s.totalStudentsReferred || 0)
       const matchText =
         !q ||
@@ -125,14 +125,14 @@ export default function ReportsDashboard() {
       const matchMax = max === null || count <= max
       return matchText && matchMin && matchMax
     })
-  }, [staffReport, search, minCount, maxCount])
+  }, [MemberReport, search, minCount, maxCount])
 
   const totalSchoolStudents = filteredSchool.reduce(
     (sum, row) => sum + Number(row.studentCount || 0),
     0
   )
 
-  const totalStaffStudents = filteredStaff.reduce(
+  const totalMemberStudents = filteredMember.reduce(
     (sum, row) => sum + Number(row.totalStudentsReferred || 0),
     0
   )
@@ -155,8 +155,8 @@ export default function ReportsDashboard() {
       return
     }
 
-    const headers = ["Staff Name", "Email", "Phone", "Total Students Referred"]
-    const lines = filteredStaff.map((row) => [
+    const headers = ["Member Name", "Email", "Phone", "Total Students Referred"]
+    const lines = filteredMember.map((row) => [
       row.name,
       row.email,
       row.phone,
@@ -167,7 +167,7 @@ export default function ReportsDashboard() {
       .join("\n")
 
     downloadCsv(
-      `staff-wise-students-${new Date().toISOString().slice(0, 10)}.csv`,
+      `member-wise-students-${new Date().toISOString().slice(0, 10)}.csv`,
       csv
     )
   }
@@ -190,9 +190,9 @@ export default function ReportsDashboard() {
     }
 
     const html = buildPdfTableHtml(
-      "Staff-wise Student Registrations",
-      ["Staff Name", "Email", "Phone", "Total Students Referred"],
-      filteredStaff.map((row) => [
+      "Member-wise Student Registrations",
+      ["Member Name", "Email", "Phone", "Total Students Referred"],
+      filteredMember.map((row) => [
         row.name,
         row.email,
         row.phone,
@@ -252,14 +252,14 @@ export default function ReportsDashboard() {
             School-wise
           </button>
           <button
-            onClick={() => setActiveTab("staff")}
+            onClick={() => setActiveTab("member")}
             className={`px-4 py-2 rounded ${
-              activeTab === "staff"
+              activeTab === "member"
                 ? "bg-blue-600 text-white"
                 : "bg-gray-100 hover:bg-gray-200"
             }`}
           >
-            Staff-wise
+            Member-wise
           </button>
         </div>
 
@@ -271,7 +271,7 @@ export default function ReportsDashboard() {
             placeholder={
               activeTab === "school"
                 ? "Search school"
-                : "Search staff/email"
+                : "Search member/email"
             }
             className="border border-gray-300 rounded px-3 py-2"
           />
@@ -331,21 +331,21 @@ export default function ReportsDashboard() {
             <table className="min-w-full border-collapse whitespace-nowrap">
               <thead className="bg-gray-100">
                 <tr>
-                  <th className="border p-2 text-left">Staff Name</th>
+                  <th className="border p-2 text-left">Member Name</th>
                   <th className="border p-2 text-left">Email</th>
                   <th className="border p-2 text-left">Phone</th>
                   <th className="border p-2 text-center">Students Referred</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredStaff.length === 0 ? (
+                {filteredMember.length === 0 ? (
                   <tr>
                     <td colSpan="4" className="p-4 text-center text-gray-500">
                       No data found for selected filters.
                     </td>
                   </tr>
                 ) : (
-                  filteredStaff.map((row, idx) => (
+                  filteredMember.map((row, idx) => (
                     <tr key={row._id || idx} className="odd:bg-white even:bg-gray-50">
                       <td className="border p-2">{row.name}</td>
                       <td className="border p-2">{row.email}</td>

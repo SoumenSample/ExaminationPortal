@@ -17,6 +17,11 @@ answer:{
 type:String
 },
 
+options:{
+type:[String],
+default:[]
+},
+
 time:{
 type:Number
 },
@@ -41,6 +46,15 @@ ageSlab:{
 type:String,
 enum:["8-12","13-16","17-22"],
 required:true
+}
+})
+}
+
+if(existingQuestionModel && !existingQuestionModel.schema.path("options")){
+existingQuestionModel.schema.add({
+options:{
+type:[String],
+default:[]
 }
 })
 }

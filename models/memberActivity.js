@@ -1,8 +1,8 @@
 import mongoose from "mongoose"
 
-const StaffActivitySchema = new mongoose.Schema(
+const MemberActivitySchema = new mongoose.Schema(
   {
-    staffId: {
+    MemberId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -35,6 +35,6 @@ const StaffActivitySchema = new mongoose.Schema(
   { timestamps: true }
 )
 
-StaffActivitySchema.index({ staffId: 1, dateKey: 1 }, { unique: true })
+MemberActivitySchema.index({ MemberId: 1, dateKey: 1 }, { unique: true })
 
-export default mongoose.models.StaffActivity || mongoose.model("StaffActivity", StaffActivitySchema)
+export default mongoose.models.MemberActivity || mongoose.model("MemberActivity", MemberActivitySchema)

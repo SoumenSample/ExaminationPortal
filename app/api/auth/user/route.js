@@ -39,7 +39,7 @@ if(!user){
 return Response.json({message:"User not found"},{status:404})
 }
 
-if((user.role === "school" || user.role === "staff") && !user.uniqueCode){
+if((user.role === "school" || user.role === "member" || user.role === "staff") && !user.uniqueCode){
 const generatedCode = await generateUniqueCode(user.role)
 await User.findByIdAndUpdate(user._id, { $set: { uniqueCode: generatedCode } })
 user.uniqueCode = generatedCode
@@ -96,16 +96,20 @@ if(!user){
 return Response.json({message:"User not found"},{status:404})
 }
 
-if(user.role !== "school" && user.role !== "staff"){
-return Response.json({message:"Bank details can only be updated for school or staff"},{status:400})
+if(user.role !== "school" && user.role !== "member" && user.role !== "staff"){
+return Response.json({message:"Bank details can only be updated for school or member/staff"},{status:400})
 }
 
 user.bankDetails = bankDetails
-await user.save()
+await User.findByIdAndUpdate(
+user._id,
+{ $set: { bankDetails } },
+{ new: true, runValidators: true }
+)
 
 return Response.json({
 message:"Bank details saved",
-bankDetails:user.bankDetails || ""
+bankDetails:bankDetails
 })
 
 }catch(error){

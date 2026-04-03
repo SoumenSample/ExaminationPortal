@@ -38,10 +38,10 @@
 // }
 
 
-// // generate unique code for school/staff
+// // generate unique code for school/member
 // let uniqueCode = null
 
-// if(role === "school" || role === "staff"){
+// if(role === "school" || role === "member"){
 // uniqueCode = await generateUniqueCode(role)
 
 // }
@@ -138,7 +138,7 @@ export async function POST(req){
       ? rawRole.trim().toLowerCase()
       : ""
     
-    const role = normalizedRole === "stuff" ? "staff" : normalizedRole
+    const role = (normalizedRole === "stuff" || normalizedRole === "staff") ? "member" : normalizedRole
     const normalizedReferralCodeInput = typeof referralCode === "string"
       ? referralCode.trim().toUpperCase()
       : ""
@@ -152,7 +152,7 @@ export async function POST(req){
     
     let referrerId = null
     
-    if(!["school","staff","student"].includes(role)){
+    if(!["school","member","student"].includes(role)){
       return Response.json(
         {message:"Invalid role"},
         {status:400}
@@ -261,7 +261,7 @@ export async function POST(req){
     // CHECK REFERRAL CODE FOR STUDENT
     if(role === "student" && effectiveReferralCode){
       const referrer = await User.findOne({
-        role: { $in: ["school","staff"] },
+        role: { $in: ["school","member","staff"] },
         $or: [
           { uniqueCode: effectiveReferralCode },
           { referralCode: effectiveReferralCode }
@@ -280,8 +280,8 @@ export async function POST(req){
     
     let generatedCode = null
     
-    // generate referral code for staff or school
-    if(role === "school" || role === "staff"){
+    // generate referral code for member or school
+    if(role === "school" || role === "member"){
       generatedCode = await generateUniqueCode(role)
     }
     

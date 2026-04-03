@@ -27,7 +27,7 @@ fetchUsers()
 
 const commissionRows = useMemo(()=>{
   return users.filter(
-    (user)=> user.role === "staff" || user.role === "school"
+    (user)=> user.role === "member" || user.role === "staff" || user.role === "school"
   )
 },[users])
 
@@ -78,7 +78,7 @@ return (
 <div className="bg-white p-6 rounded shadow">
 
 <h2 className="text-xl font-semibold mb-6">
-Staff & School Commission
+Member & School Commission
 </h2>
 
 <div className="overflow-hidden">
@@ -102,6 +102,7 @@ style={{ WebkitOverflowScrolling: "touch", scrollbarWidth: "thin", scrollbarColo
 <th className="border p-2 min-w-28">Current Referrals</th>
 <th className="border p-2 min-w-28">Total Referrals</th>
 <th className="border p-2 min-w-32.5">Payment Status</th>
+<th className="border p-2 min-w-45">Bank Details</th>
 <th className="border p-2 min-w-32.5">Current Commission</th>
 <th className="border p-2 min-w-32.5">Total Commission</th>
 </tr>
@@ -112,11 +113,11 @@ style={{ WebkitOverflowScrolling: "touch", scrollbarWidth: "thin", scrollbarColo
 
 {loading ? (
 <tr>
-<td colSpan="12" className="text-center p-4">Loading...</td>
+<td colSpan="13" className="text-center p-4">Loading...</td>
 </tr>
 ) : commissionRows.length === 0 ? (
 <tr>
-<td colSpan="12" className="text-center p-4">No staff or school data found</td>
+<td colSpan="13" className="text-center p-4">No member or school data found</td>
 </tr>
 ) : commissionRows.map((user)=>(
 <tr key={user._id} className="text-center">
@@ -142,6 +143,12 @@ style={getPaymentStatusStyle(user.paymentStatus || "pending")}
 <option value="pending" className="text-black bg-white">Pending</option>
 <option value="paid" className="text-black bg-white">Paid</option>
 </select>
+</td>
+
+<td className="border p-2 min-w-45">
+{(user.totalReferralCount || 0) > 0
+? ((user.paymentStatus || "pending") === "paid" ? "-" : (user.bankDetails || ""))
+: ""}
 </td>
 
 <td className="border p-2 min-w-32.5">

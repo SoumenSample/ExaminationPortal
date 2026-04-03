@@ -10,7 +10,7 @@ lowercase:true
 
 role:{
 type:String,
-enum:["student","staff","school"],
+enum:["student","member","school"],
 required:true
 },
 

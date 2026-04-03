@@ -5,21 +5,21 @@ export async function GET(req) {
   try {
     await connectDB()
     
-    // Get all staff members with their student referral count and commission
-    const staffReport = await User.aggregate([
+    // Include both new role (member) and legacy role (staff).
+    const MemberReport = await User.aggregate([
       {
         $match: {
-          role: "staff"
+          role: { $in: ["member", "staff"] }
         }
       },
       {
         $lookup: {
           from: "users",
-          let: { staffId: "$_id" },
+          let: { memberId: "$_id" },
           pipeline: [
             {
               $match: {
-                $expr: { $eq: ["$referredBy", "$$staffId"] },
+                $expr: { $eq: ["$referredBy", "$$memberId"] },
                 role: "student"
               }
             }
@@ -44,7 +44,7 @@ export async function GET(req) {
       }
     ])
     
-    // Also get school staff (if role exists as school that manages students)
+    // Also get school member (if role exists as school that manages students)
     const schoolReport = await User.aggregate([
       {
         $match: {
@@ -84,11 +84,12 @@ export async function GET(req) {
     
     return Response.json({
       success: true,
-      staffReport,
+      memberReport: MemberReport,
+      MemberReport,
       schoolReport
     })
   } catch (error) {
-    console.error("Error generating staff report:", error)
+    console.error("Error generating member report:", error)
     return Response.json(
       { error: error.message },
       { status: 500 }

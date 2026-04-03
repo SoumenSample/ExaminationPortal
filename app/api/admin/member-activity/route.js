@@ -1,26 +1,26 @@
 import { connectDB } from "@/lib/db"
 import User from "@/models/User"
-import StaffActivity from "@/models/StaffActivity"
+import MemberActivity from "@/models/memberActivity"
 
 export async function GET(req) {
   try {
     await connectDB()
 
     const { searchParams } = new URL(req.url)
-    const staffId = searchParams.get("staffId")
+    const MemberId = searchParams.get("MemberId")
 
-    const staffList = await User.find({ role: "staff" })
+    const MemberList = await User.find({ role: { $in: ["member", "staff"] } })
       .select("_id name email phone")
       .sort({ name: 1 })
       .lean()
 
     const query = {}
-    if (staffId) {
-      query.staffId = staffId
+    if (MemberId) {
+      query.MemberId = MemberId
     }
 
-    const rows = await StaffActivity.find(query)
-      .populate("staffId", "name email phone")
+    const rows = await MemberActivity.find(query)
+      .populate("MemberId", "name email phone")
       .sort({ activityDate: -1, createdAt: -1 })
       .lean()
 
@@ -31,18 +31,18 @@ export async function GET(req) {
       checkOut: row.checkOut || "",
       report: row.report || "",
       updatedAt: row.updatedAt,
-      staff: row.staffId
+      member: row.MemberId
         ? {
-            _id: String(row.staffId._id),
-            name: row.staffId.name || "",
-            email: row.staffId.email || "",
-            phone: row.staffId.phone || "",
+            _id: String(row.MemberId._id),
+            name: row.MemberId.name || "",
+            email: row.MemberId.email || "",
+            phone: row.MemberId.phone || "",
           }
         : null,
     }))
 
     return Response.json({
-      staff: staffList.map((s) => ({
+      member: MemberList.map((s) => ({
         _id: String(s._id),
         name: s.name || "",
         email: s.email || "",
@@ -51,6 +51,6 @@ export async function GET(req) {
       activities,
     })
   } catch (error) {
-    return Response.json({ message: error.message || "Failed to load staff activity" }, { status: 500 })
+    return Response.json({ message: error.message || "Failed to load member activity" }, { status: 500 })
   }
 }

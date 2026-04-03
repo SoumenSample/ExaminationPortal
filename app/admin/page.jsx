@@ -122,8 +122,10 @@ import LinkPage from "./link"
 import Topper from "./topper"
 import ReportsDashboard from "./reportsDashboard"
 import ChatSupport from "./chatSupport"
-import StaffActivity from "./staffActivity"
+import MemberActivity from "./memberActivity"
 import Notification from "./notification"
+import ResultSection from "./result"
+import BankDetailsSection from "./bankDetails"
 
 export default function AdminPanel(){
 
@@ -136,14 +138,16 @@ export default function AdminPanel(){
   const menu = [
   { name: "Examination", value: "examination" },
   { name: "Payment", value: "payment" },
-  { name: "Entry", value: "entry" },
+  { name: "All Users", value: "entry" },
+  { name: "Result", value: "result" },
   { name: "Commission Calculation", value: "commission" },
   { name: "Link Management", value: "link" },
   { name: "Topper list", value: "topper" },
   { name: "Notifications", value: "notifications" },
+  { name: "Bank Details", value: "bank-details" },
   { name: "Reports Dashboard", value: "reports" },
   { name: "Chat Support", value: "chat-support" },
-  { name: "Staff Activity", value: "staff-activity" },
+  { name: "Member Activity", value: "member-activity" },
 ]
 
   // ✅ FETCH USER
@@ -306,6 +310,8 @@ export default function AdminPanel(){
 
           {tab === "entry" && <Entry />}
 
+          {tab === "result" && <ResultSection />}
+
           {tab === "commission" && <Commision />}
 
           {tab === "link" && <LinkPage />}
@@ -314,11 +320,13 @@ export default function AdminPanel(){
 
           {tab === "notifications" && <Notification />}
 
+          {tab === "bank-details" && <BankDetailsSection />}
+
           {tab === "reports" && <ReportsDashboard />}
 
           {tab === "chat-support" && <ChatSupport user={user} />}
 
-          {tab === "staff-activity" && <StaffActivity />}
+          {tab === "member-activity" && <MemberActivity />}
 
         </div>
 

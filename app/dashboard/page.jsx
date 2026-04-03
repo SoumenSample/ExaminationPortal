@@ -52,6 +52,7 @@ export default function Dashboard() {
   const [resultPublished, setResultPublished] = useState(false)
   const [scheduledAt, setScheduledAt] = useState(null)
   const [timeLeft, setTimeLeft] = useState(0)
+  const [hasExamQuestions, setHasExamQuestions] = useState(false)
 
   const [links, setLinks] = useState([])
   const [notifications, setNotifications] = useState([])
@@ -145,6 +146,20 @@ export default function Dashboard() {
         }
       })
   }, [user])
+
+  useEffect(() => {
+    if (!user?._id) return
+
+    fetch("/api/question", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        const rows = Array.isArray(data) ? data : []
+        setHasExamQuestions(rows.length > 0)
+      })
+      .catch(() => {
+        setHasExamQuestions(false)
+      })
+  }, [user?._id])
 
   useEffect(() => {
     fetch("/api/topper")
@@ -540,12 +555,16 @@ export default function Dashboard() {
               )}
 
               {!resultPublished && !hasSubmittedExam && timeLeft === 0 && (
-                <button
-                  onClick={() => window.open("/dashboard/student?exam=1", "_blank")}
-                  className="bg-blue-600 text-white px-6 py-2 rounded"
-                >
-                  Start Exam
-                </button>
+                hasExamQuestions ? (
+                  <button
+                    onClick={() => window.open("/dashboard/student?exam=1", "_blank")}
+                    className="bg-blue-600 text-white px-6 py-2 rounded"
+                  >
+                    Start Exam
+                  </button>
+                ) : (
+                  <p className="text-gray-600 text-sm">No exam available for you right now.</p>
+                )
               )}
 
               {hasSubmittedExam && !resultPublished && (

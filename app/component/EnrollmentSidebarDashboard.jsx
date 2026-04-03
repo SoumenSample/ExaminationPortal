@@ -76,16 +76,16 @@ export default function EnrollmentSidebarDashboard({ title }) {
   const [toDate, setToDate] = useState("")
   const [bankDetails, setBankDetails] = useState("")
   const [savingBankDetails, setSavingBankDetails] = useState(false)
-  const [staffActivities, setStaffActivities] = useState([])
-  const [loadingStaffActivity, setLoadingStaffActivity] = useState(false)
-  const [savingStaffActivity, setSavingStaffActivity] = useState(false)
+  const [MemberActivities, setMemberActivities] = useState([])
+  const [loadingMemberActivity, setLoadingMemberActivity] = useState(false)
+  const [savingMemberActivity, setSavingMemberActivity] = useState(false)
   const [activityDate, setActivityDate] = useState(todayDateKey())
   const [dailyReport, setDailyReport] = useState("")
 
   useEffect(() => {
     if (!activityDate) return
 
-    const existing = staffActivities.find((row) => row.date === activityDate)
+    const existing = MemberActivities.find((row) => row.date === activityDate)
 
     if (existing) {
       setDailyReport(existing.report || "")
@@ -93,23 +93,23 @@ export default function EnrollmentSidebarDashboard({ title }) {
     }
 
     setDailyReport("")
-  }, [activityDate, staffActivities])
+  }, [activityDate, MemberActivities])
 
-  const fetchStaffActivity = async (staffUserId) => {
-    if (!staffUserId) return
+  const fetchMemberActivity = async (MemberUserId) => {
+    if (!MemberUserId) return
 
-    setLoadingStaffActivity(true)
+    setLoadingMemberActivity(true)
 
     try {
-      const response = await fetch(`/api/staff-activity?userId=${staffUserId}`)
+      const response = await fetch(`/api/member-activity?userId=${MemberUserId}`)
       const payload = await response.json()
 
       if (!response.ok) {
-        throw new Error(payload?.message || "Could not load staff activity")
+        throw new Error(payload?.message || "Could not load member activity")
       }
 
       const rows = Array.isArray(payload?.activities) ? payload.activities : []
-      setStaffActivities(rows)
+      setMemberActivities(rows)
 
       const today = todayDateKey()
       const existingForToday = rows.find((row) => row.date === today)
@@ -119,9 +119,9 @@ export default function EnrollmentSidebarDashboard({ title }) {
         setDailyReport(existingForToday.report || "")
       }
     } catch (activityError) {
-      await showAlert(activityError.message || "Could not load staff activity", { title: "Staff Activity" })
+      await showAlert(activityError.message || "Could not load member activity", { title: "Member Activity" })
     } finally {
-      setLoadingStaffActivity(false)
+      setLoadingMemberActivity(false)
     }
   }
 
@@ -161,8 +161,8 @@ export default function EnrollmentSidebarDashboard({ title }) {
         if (!isMounted) return
         setStudents(Array.isArray(enrollmentData.students) ? enrollmentData.students : [])
 
-        if (userData?.role === "staff") {
-          await fetchStaffActivity(userId)
+        if (userData?.role === "member" || userData?.role === "staff") {
+          await fetchMemberActivity(userId)
         }
       } catch (loadError) {
         if (!isMounted) return
@@ -196,8 +196,8 @@ export default function EnrollmentSidebarDashboard({ title }) {
       { name: "Bank Details", value: "bank-details" },
     ]
 
-    if (user?.role === "staff") {
-      baseMenu.push({ name: "Staff Activity", value: "staff-activity" })
+    if (user?.role === "member" || user?.role === "staff") {
+      baseMenu.push({ name: "Member Activity", value: "member-activity" })
     }
 
     return baseMenu
@@ -241,8 +241,8 @@ export default function EnrollmentSidebarDashboard({ title }) {
 
   const currentActivityForDate = useMemo(() => {
     if (!activityDate) return null
-    return staffActivities.find((row) => row.date === activityDate) || null
-  }, [activityDate, staffActivities])
+    return MemberActivities.find((row) => row.date === activityDate) || null
+  }, [activityDate, MemberActivities])
 
   const markAttendance = async (action) => {
     if (!user?._id) {
@@ -251,9 +251,9 @@ export default function EnrollmentSidebarDashboard({ title }) {
     }
 
     try {
-      setSavingStaffActivity(true)
+      setSavingMemberActivity(true)
 
-      const response = await fetch("/api/staff-activity", {
+      const response = await fetch("/api/member-activity", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -272,14 +272,14 @@ export default function EnrollmentSidebarDashboard({ title }) {
         setActivityDate(payload.activity.date)
       }
 
-      await fetchStaffActivity(user._id)
+      await fetchMemberActivity(user._id)
       await showAlert(action === "check-in" ? "Checked in successfully" : "Checked out successfully", {
         title: "Attendance",
       })
     } catch (saveError) {
       await showAlert(saveError.message || `Failed to ${action}`, { title: "Attendance" })
     } finally {
-      setSavingStaffActivity(false)
+      setSavingMemberActivity(false)
     }
   }
 
@@ -300,9 +300,9 @@ export default function EnrollmentSidebarDashboard({ title }) {
     }
 
     try {
-      setSavingStaffActivity(true)
+      setSavingMemberActivity(true)
 
-      const response = await fetch("/api/staff-activity", {
+      const response = await fetch("/api/member-activity", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -320,12 +320,12 @@ export default function EnrollmentSidebarDashboard({ title }) {
         throw new Error(payload?.message || "Failed to save report")
       }
 
-      await fetchStaffActivity(user._id)
+      await fetchMemberActivity(user._id)
       await showAlert("Daily report saved", { title: "Daily Report" })
     } catch (saveError) {
       await showAlert(saveError.message || "Failed to save report", { title: "Daily Report" })
     } finally {
-      setSavingStaffActivity(false)
+      setSavingMemberActivity(false)
     }
   }
 
@@ -735,7 +735,7 @@ export default function EnrollmentSidebarDashboard({ title }) {
             </section>
           )}
 
-          {tab === "staff-activity" && user?.role === "staff" && (
+          {tab === "member-activity" && (user?.role === "member" || user?.role === "staff") && (
             <>
               <section className="rounded-xl bg-white p-4 shadow-sm md:p-5 mb-4 max-w-4xl">
                 <h2 className="text-lg font-semibold mb-2">Attendance</h2>
@@ -767,17 +767,17 @@ export default function EnrollmentSidebarDashboard({ title }) {
                 <div className="flex flex-wrap justify-end gap-2">
                   <button
                     onClick={() => markAttendance("check-in")}
-                    disabled={savingStaffActivity}
+                    disabled={savingMemberActivity}
                     className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-60"
                   >
-                    {savingStaffActivity ? "Saving..." : "Check In Now"}
+                    {savingMemberActivity ? "Saving..." : "Check In Now"}
                   </button>
                   <button
                     onClick={() => markAttendance("check-out")}
-                    disabled={savingStaffActivity}
+                    disabled={savingMemberActivity}
                     className="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
                   >
-                    {savingStaffActivity ? "Saving..." : "Check Out Now"}
+                    {savingMemberActivity ? "Saving..." : "Check Out Now"}
                   </button>
                 </div>
               </section>
@@ -810,10 +810,10 @@ export default function EnrollmentSidebarDashboard({ title }) {
                 <div className="mt-3 flex justify-end">
                   <button
                     onClick={saveDailyReport}
-                    disabled={savingStaffActivity}
+                    disabled={savingMemberActivity}
                     className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-60"
                   >
-                    {savingStaffActivity ? "Saving..." : "Save Daily Report"}
+                    {savingMemberActivity ? "Saving..." : "Save Daily Report"}
                   </button>
                 </div>
               </section>
@@ -821,9 +821,9 @@ export default function EnrollmentSidebarDashboard({ title }) {
               <section className="rounded-xl bg-white p-4 shadow-sm md:p-5 max-w-5xl">
                 <h3 className="text-base font-semibold mb-3">My Submitted Activity</h3>
 
-                {loadingStaffActivity ? (
+                {loadingMemberActivity ? (
                   <p className="text-sm text-slate-500">Loading activity...</p>
-                ) : staffActivities.length === 0 ? (
+                ) : MemberActivities.length === 0 ? (
                   <p className="text-sm text-slate-500">No attendance/report added yet.</p>
                 ) : (
                   <div className="overflow-x-auto">
@@ -837,7 +837,7 @@ export default function EnrollmentSidebarDashboard({ title }) {
                         </tr>
                       </thead>
                       <tbody>
-                        {staffActivities.map((row) => (
+                        {MemberActivities.map((row) => (
                           <tr key={row._id} className="rounded-lg bg-slate-50 align-top">
                             <td className="px-3 py-2 text-slate-700">{row.date || "-"}</td>
                             <td className="px-3 py-2 text-slate-700">{formatTime12Hour(row.checkIn)}</td>

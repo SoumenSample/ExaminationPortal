@@ -41,8 +41,8 @@ export async function GET(req) {
       return Response.json({ message: "User not found" }, { status: 404 })
     }
 
-    if (!["school", "staff"].includes(owner.role)) {
-      return Response.json({ message: "Only school or staff users are allowed" }, { status: 403 })
+    if (!["school", "member", "staff"].includes(owner.role)) {
+      return Response.json({ message: "Only school or member/staff users are allowed" }, { status: 403 })
     }
 
     const students = await User.find(buildEnrollmentQuery(owner))

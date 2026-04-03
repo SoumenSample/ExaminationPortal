@@ -1,45 +1,14 @@
 "use client"
 
 import React, { useEffect, useMemo, useState } from "react"
-import { useAppDialog } from "../component/AppDialog"
 
 const Entry = () => {
-const { showAlert } = useAppDialog()
-
 const [users,setUsers] = useState([])
 const [loading,setLoading] = useState(true)
-const [publishing,setPublishing] = useState(false)
 const [roleFilter,setRoleFilter] = useState("all")
 const [districtFilter,setDistrictFilter] = useState("")
 const [stateFilter,setStateFilter] = useState("")
 const [studentAgeFilter,setStudentAgeFilter] = useState("all")
-
- const publishResult = async()=>{
-
-setPublishing(true)
-
-try{
-const res = await fetch("/api/result",{
-method:"PATCH",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify({})
-})
-
-if(!res.ok){
-throw new Error("Failed to publish results")
-}
-
-await showAlert("All results published", { title: "Publish Result" })
-
-}catch(error){
-await showAlert(error.message || "Failed to publish results", { title: "Publish Result" })
-}finally{
-setPublishing(false)
-}
-
-}
 
 useEffect(()=>{
 
@@ -97,10 +66,9 @@ if(Number.isNaN(age)){
 return false
 }
 
-if(studentAgeFilter === "under-12") return age < 12
-if(studentAgeFilter === "12-15") return age >= 12 && age <= 15
-if(studentAgeFilter === "16-18") return age >= 16 && age <= 18
-if(studentAgeFilter === "above-18") return age > 18
+if(studentAgeFilter === "8-12") return age >= 8 && age <= 12
+if(studentAgeFilter === "13-16") return age >= 13 && age <= 16
+if(studentAgeFilter === "17-22") return age >= 17 && age <= 22
 
 return true
 }
@@ -131,16 +99,8 @@ return (
 <div className="bg-white p-4 md:p-6 rounded shadow w-full max-w-full min-w-0">
 
 <h2 className="text-xl font-semibold mb-6">
-Entry Section
+All Users
 </h2>
-
-<button
-onClick={publishResult}
-disabled={publishing}
-className="bg-green-600 text-white px-4 py-2 rounded mb-6 disabled:opacity-60"
->
-{publishing ? "Publishing..." : "Publish All Results"}
-</button>
 
 <div className="mb-6 border border-gray-200 rounded-lg p-4 bg-gray-50">
 <p className="text-sm font-semibold text-gray-700 mb-3">Filters</p>
@@ -156,7 +116,7 @@ className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white"
 <option value="all">All</option>
 <option value="student">Student</option>
 <option value="school">School</option>
-<option value="staff">Staff</option>
+<option value="member">Member</option>
 </select>
 </div>
 
@@ -196,10 +156,9 @@ onChange={(e)=>setStudentAgeFilter(e.target.value)}
 className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white"
 >
 <option value="all">All Ages</option>
-<option value="under-12">Under 12</option>
-<option value="12-15">12 to 15</option>
-<option value="16-18">16 to 18</option>
-<option value="above-18">Above 18</option>
+<option value="8-12">Age 8-12</option>
+<option value="13-16">Age 13-16</option>
+<option value="17-22">Age 17-22</option>
 </select>
 </div>
 

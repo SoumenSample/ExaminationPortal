@@ -17,11 +17,15 @@ export async function POST(req) {
       )
     }
 
-    const normalizedRole = typeof role === "string"
+    const requestedRole = typeof role === "string"
       ? role.trim().toLowerCase()
       : "student"
 
-    if (!["student", "staff", "school"].includes(normalizedRole)) {
+    const normalizedRole = requestedRole === "staff" || requestedRole === "stuff"
+      ? "member"
+      : requestedRole
+
+    if (!["student", "member", "school"].includes(normalizedRole)) {
       return Response.json(
         { message: "Invalid role" },
         { status: 400 }

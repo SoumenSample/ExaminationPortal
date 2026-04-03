@@ -16,7 +16,7 @@ export async function POST(req) {
     const body = await req.json().catch(() => ({}))
     const dryRun = Boolean(body?.dryRun)
 
-    const referrers = await User.find({ role: { $in: ["staff", "school"] } })
+    const referrers = await User.find({ role: { $in: ["member", "staff", "school"] } })
       .select("_id email role referralCode uniqueCode totalCommission totalReferralCount")
       .lean()
 

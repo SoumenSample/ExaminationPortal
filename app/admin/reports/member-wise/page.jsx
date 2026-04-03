@@ -2,16 +2,16 @@
 
 import React, { useEffect, useState } from "react"
 
-export default function StaffWiseReportPage() {
+export default function MemberWiseReportPage() {
   const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
-  const [activeTab, setActiveTab] = useState("staff")
+  const [activeTab, setActiveTab] = useState("member")
 
   useEffect(() => {
     const fetchReport = async () => {
       try {
-        const res = await fetch("/api/admin/report/staff-wise")
+        const res = await fetch("/api/admin/report/member-wise")
         if (res.ok) {
           const data = await res.json()
           setReport(data)
@@ -34,12 +34,12 @@ export default function StaffWiseReportPage() {
     let csvContent = ""
     let filename = ""
 
-    if (type === "staff") {
-      csvContent = "Staff Name,Email,Phone,Students Referred,Total Commission Earned (₹)\n"
-      filename = `staff-report-${new Date().toISOString().split('T')[0]}.csv`
+    if (type === "member") {
+      csvContent = "Member Name,Email,Phone,Students Referred,Total Commission Earned (₹)\n"
+      filename = `member-report-${new Date().toISOString().split('T')[0]}.csv`
       
-      report.staffReport?.forEach(staff => {
-        csvContent += `"${staff.name}","${staff.email}","${staff.phone}",${staff.totalStudentsReferred},${staff.totalCommissionEarned}\n`
+      report.MemberReport?.forEach(member => {
+        csvContent += `"${member.name}","${member.email}","${member.phone}",${member.totalStudentsReferred},${member.totalCommissionEarned}\n`
       })
     } else {
       csvContent = "School Name,Email,Phone,Students Registered,Total Commission Earned (₹)\n"
@@ -63,7 +63,7 @@ export default function StaffWiseReportPage() {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Staff & School-wise Registration Report</h1>
+          <h1 className="text-3xl font-bold text-slate-900">Member & School-wise Registration Report</h1>
           <button
             onClick={() => downloadExcel(activeTab)}
             className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
@@ -75,14 +75,14 @@ export default function StaffWiseReportPage() {
         {/* Tabs */}
         <div className="flex gap-4 mb-8">
           <button
-            onClick={() => setActiveTab("staff")}
+            onClick={() => setActiveTab("member")}
             className={`px-6 py-2 rounded font-semibold transition ${
-              activeTab === "staff"
+              activeTab === "member"
                 ? "bg-blue-600 text-white"
                 : "bg-white text-slate-900 border border-gray-300"
             }`}
           >
-            Staff Members
+            Member Members
           </button>
           <button
             onClick={() => setActiveTab("school")}
@@ -96,13 +96,13 @@ export default function StaffWiseReportPage() {
           </button>
         </div>
 
-        {/* Staff Report Table */}
-        {activeTab === "staff" && (
+        {/* Member Report Table */}
+        {activeTab === "member" && (
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
             <table className="w-full">
               <thead className="bg-blue-600 text-white">
                 <tr>
-                  <th className="p-4 text-left">Staff Name</th>
+                  <th className="p-4 text-left">Member Name</th>
                   <th className="p-4 text-left">Email</th>
                   <th className="p-4 text-left">Phone</th>
                   <th className="p-4 text-center">Students Referred</th>
@@ -110,19 +110,19 @@ export default function StaffWiseReportPage() {
                 </tr>
               </thead>
               <tbody>
-                {report?.staffReport?.length > 0 ? (
-                  report.staffReport.map((staff, idx) => (
+                {report?.MemberReport?.length > 0 ? (
+                  report.MemberReport.map((member, idx) => (
                     <tr key={idx} className={idx % 2 === 0 ? "bg-gray-50" : "bg-white"}>
-                      <td className="p-4 border-b text-slate-900 font-semibold">{staff.name}</td>
-                      <td className="p-4 border-b text-slate-900">{staff.email}</td>
-                      <td className="p-4 border-b text-slate-900">{staff.phone}</td>
-                      <td className="p-4 border-b text-center text-slate-900 font-semibold">{staff.totalStudentsReferred || 0}</td>
-                      <td className="p-4 border-b text-right text-slate-900 font-semibold">₹{staff.totalCommissionEarned?.toLocaleString() || 0}</td>
+                      <td className="p-4 border-b text-slate-900 font-semibold">{member.name}</td>
+                      <td className="p-4 border-b text-slate-900">{member.email}</td>
+                      <td className="p-4 border-b text-slate-900">{member.phone}</td>
+                      <td className="p-4 border-b text-center text-slate-900 font-semibold">{member.totalStudentsReferred || 0}</td>
+                      <td className="p-4 border-b text-right text-slate-900 font-semibold">₹{member.totalCommissionEarned?.toLocaleString() || 0}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="p-4 text-center text-slate-500">No staff data available</td>
+                    <td colSpan="5" className="p-4 text-center text-slate-500">No member data available</td>
                   </tr>
                 )}
               </tbody>
@@ -166,16 +166,16 @@ export default function StaffWiseReportPage() {
 
         {/* Stats */}
         <div className="mt-8 grid grid-cols-2 gap-4">
-          {activeTab === "staff" && (
+          {activeTab === "member" && (
             <>
               <div className="bg-blue-100 p-6 rounded-lg">
-                <p className="text-slate-700 text-sm">Total Staff Members</p>
-                <p className="text-3xl font-bold text-blue-600">{report?.staffReport?.length || 0}</p>
+                <p className="text-slate-700 text-sm">Total Member Members</p>
+                <p className="text-3xl font-bold text-blue-600">{report?.MemberReport?.length || 0}</p>
               </div>
               <div className="bg-green-100 p-6 rounded-lg">
                 <p className="text-slate-700 text-sm">Total Commission Earned</p>
                 <p className="text-3xl font-bold text-green-600">
-                  ₹{report?.staffReport?.reduce((sum, s) => sum + (s.totalCommissionEarned || 0), 0)?.toLocaleString() || 0}
+                  ₹{report?.MemberReport?.reduce((sum, s) => sum + (s.totalCommissionEarned || 0), 0)?.toLocaleString() || 0}
                 </p>
               </div>
             </>

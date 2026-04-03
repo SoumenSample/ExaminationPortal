@@ -25,6 +25,10 @@ const [editingQuestionId,setEditingQuestionId] = useState("")
 const [form,setForm] = useState({
 question:"",
 answer:"",
+option1:"",
+option2:"",
+option3:"",
+option4:"",
 time:"",
 marks:"",
 ageSlab:"8-12",
@@ -39,7 +43,7 @@ setForm({...form,[e.target.name]:e.target.value})
 
 const fetchQuestions = async ()=>{
 try{
-const res = await fetch("/api/question")
+const res = await fetch("/api/admin/question")
 const data = await res.json()
 setQuestions(Array.isArray(data) ? data : [])
 }catch{
@@ -54,6 +58,10 @@ setType("mcq")
 setForm({
 question:"",
 answer:"",
+option1:"",
+option2:"",
+option3:"",
+option4:"",
 time:"",
 marks:"",
 ageSlab,
@@ -68,6 +76,10 @@ setType(question.type || "mcq")
 setForm({
 question: question.question || "",
 answer: question.answer || "",
+option1: question?.options?.[0] || "",
+option2: question?.options?.[1] || "",
+option3: question?.options?.[2] || "",
+option4: question?.options?.[3] || "",
 time: String(question.time ?? ""),
 marks: String(question.marks ?? ""),
 ageSlab: question.ageSlab || "8-12",
@@ -82,6 +94,10 @@ setType(question.type || "mcq")
 setForm({
 question: question.question || "",
 answer: question.answer || "",
+option1: question?.options?.[0] || "",
+option2: question?.options?.[1] || "",
+option3: question?.options?.[2] || "",
+option4: question?.options?.[3] || "",
 time: String(question.time ?? ""),
 marks: String(question.marks ?? ""),
 ageSlab: question.ageSlab || "8-12",
@@ -167,7 +183,7 @@ cancelLabel: "Cancel",
 
 if(!confirmed) return
 
-const res = await fetch(`/api/question?id=${id}`,{
+const res = await fetch(`/api/admin/question?id=${id}` ,{
 method:"DELETE"
 })
 
@@ -200,6 +216,20 @@ await showAlert("Correct answer required", { title: isEditMode ? "Edit Question"
 return
 }
 
+const mcqOptions = [form.option1,form.option2,form.option3,form.option4].map((item)=>item.trim())
+
+if(type === "mcq"){
+if(mcqOptions.some((item)=>!item)){
+await showAlert("Please provide all 4 options for MCQ", { title: isEditMode ? "Edit Question" : "Create Question" })
+return
+}
+
+if(!mcqOptions.includes(form.answer.trim())){
+await showAlert("Correct answer must match one of the 4 options", { title: isEditMode ? "Edit Question" : "Create Question" })
+return
+}
+}
+
 if(!form.ageSlab){
 await showAlert("Age slab is required", { title: isEditMode ? "Edit Question" : "Create Question" })
 return
@@ -209,7 +239,7 @@ setSavingQuestion(true)
 
 try{
 
-const endpoint = isEditMode ? `/api/question?id=${editingQuestionId}` : "/api/question"
+const endpoint = isEditMode ? `/api/admin/question?id=${editingQuestionId}` : "/api/admin/question"
 const method = isEditMode ? "PATCH" : "POST"
 
 const res = await fetch(endpoint,{
@@ -219,6 +249,7 @@ headers:{
 },
 body:JSON.stringify({
 ...form,
+options: mcqOptions,
 type
 })
 })
@@ -256,6 +287,10 @@ isEditMode ? "Question updated successfully" : "Question saved successfully",
 setForm({
 question:"",
 answer:"",
+option1:"",
+option2:"",
+option3:"",
+option4:"",
 time:"",
 marks:"",
 ageSlab:activeCategory,
@@ -387,6 +422,17 @@ Answer: {q.answer}
 </p>
 )}
 
+{q.type === "mcq" && Array.isArray(q.options) && q.options.length > 0 && (
+<div className="text-sm text-gray-600">
+<p className="font-medium">Options:</p>
+<ol className="list-decimal pl-5">
+{q.options.map((option,optionIndex)=>(
+<li key={`${q._id}-option-${optionIndex}`}>{option}</li>
+))}
+</ol>
+</div>
+)}
+
 <p className="text-sm text-gray-600">
 Time: {q.time}
 </p>
@@ -484,14 +530,71 @@ disabled={isViewMode}
 
 {type === "mcq" && (
 
+<>
+
+<input
+name="option1"
+placeholder="Option 1"
+className="w-full border p-2 rounded"
+value={form.option1}
+onChange={handleChange}
+disabled={isViewMode}
+/>
+
+<input
+name="option2"
+placeholder="Option 2"
+className="w-full border p-2 rounded"
+value={form.option2}
+onChange={handleChange}
+disabled={isViewMode}
+/>
+
+<input
+name="option3"
+placeholder="Option 3"
+className="w-full border p-2 rounded"
+value={form.option3}
+onChange={handleChange}
+disabled={isViewMode}
+/>
+
+<input
+name="option4"
+placeholder="Option 4"
+className="w-full border p-2 rounded"
+value={form.option4}
+onChange={handleChange}
+disabled={isViewMode}
+/>
+
+{isViewMode ? (
 <input
 name="answer"
 placeholder="Correct Answer"
 className="w-full border p-2 rounded"
 value={form.answer}
-onChange={handleChange}
-disabled={isViewMode}
+readOnly
+disabled
 />
+) : (
+<select
+name="answer"
+className="w-full border p-2 rounded"
+value={form.answer}
+onChange={handleChange}
+>
+<option value="">Select Correct Answer</option>
+{[form.option1,form.option2,form.option3,form.option4]
+.map((item)=>item.trim())
+.filter(Boolean)
+.map((item)=>(
+<option key={item} value={item}>{item}</option>
+))}
+</select>
+)}
+
+</>
 
 )}
 

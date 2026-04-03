@@ -28,7 +28,7 @@ const user = await User.findOne({
   ]
 })
 
-// If not found as student, try staff/school with any field
+// If not found as student, try member/school with any field
 if(!user){
   const altUser = await User.findOne({
     $or: [

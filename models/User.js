@@ -4,7 +4,7 @@ const UserSchema = new mongoose.Schema({
 
 role:{
 type:String,
-enum:["school","staff","student"],
+enum:["school","member","student"],
 required:true
 },
 
@@ -14,11 +14,11 @@ phone:String,
 address:String,
 addressLine1:{
 type:String,
-required:function(){return ["school","staff","student"].includes(this.role)}
+required:function(){return ["school","member","student"].includes(this.role)}
 },
 addressLine2:{
 type:String,
-required:function(){return ["school","staff","student"].includes(this.role)}
+required:function(){return ["school","member","student"].includes(this.role)}
 },
 bankDetails:{
 type:String,
@@ -26,15 +26,15 @@ default:""
 },
 district:{
 type:String,
-required:function(){return ["school","staff","student"].includes(this.role)}
+required:function(){return ["school","member","student"].includes(this.role)}
 },
 pincode:{
 type:String,
-required:function(){return ["school","staff","student"].includes(this.role)}
+required:function(){return ["school","member","student"].includes(this.role)}
 },
 state:{
 type:String,
-required:function(){return ["school","staff","student"].includes(this.role)}
+required:function(){return ["school","member","student"].includes(this.role)}
 },
 aadhaar:String,
 

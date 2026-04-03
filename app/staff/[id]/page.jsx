@@ -2,6 +2,6 @@
 
 import EnrollmentSidebarDashboard from "@/app/component/EnrollmentSidebarDashboard"
 
-export default function StaffDashboard() {
-	return <EnrollmentSidebarDashboard title="Staff Dashboard" />
+export default function MemberDashboard() {
+	return <EnrollmentSidebarDashboard title="Member Dashboard" />
 }

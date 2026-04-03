@@ -22,6 +22,7 @@ const [open,setOpen] = useState(false)
 const [questions,setQuestions] = useState([])
 const [current,setCurrent] = useState(0)
 const [questionMessage,setQuestionMessage] = useState("")
+const [questionsLoaded,setQuestionsLoaded] = useState(false)
 
 const [answer,setAnswer] = useState("")
 const [answers,setAnswers] = useState([])
@@ -37,8 +38,16 @@ const [timeLeft,setTimeLeft] = useState(0)
 
 useEffect(()=>{
 
-if(searchParams.get("exam") === "1" && !hasSubmittedExam){
-if(timeLeft > 0){
+if(searchParams.get("exam") !== "1"){
+return
+}
+
+if(!questionsLoaded){
+return
+}
+
+if(hasSubmittedExam || resultPublished || timeLeft > 0 || questions.length === 0){
+setStartExam(false)
 return
 }
 
@@ -47,9 +56,8 @@ setStartExam(true)
 },0)
 
 return ()=> clearTimeout(starter)
-}
 
-},[searchParams,hasSubmittedExam,timeLeft])
+},[searchParams,questionsLoaded,hasSubmittedExam,resultPublished,timeLeft,questions.length])
 
 useEffect(()=>{
 
@@ -117,12 +125,14 @@ fetch("/api/question")
 .then(data=>{
 const rows = Array.isArray(data) ? data : []
 setQuestions(rows)
+setCurrent(0)
+setStartExam(false)
 
 if(rows.length > 0){
 setTime(rows[0].time *60)
 setQuestionMessage("")
 }else{
-setQuestionMessage("No exam is available for your age slab yet.")
+setQuestionMessage("No exam is available for you yet.")
 
 // setAnswer("")
 // setTime(questions[next].time * 60)
@@ -133,6 +143,7 @@ setQuestionMessage("No exam is available for your age slab yet.")
 // setTime(questions[next].time * 60)
 
 })
+.finally(()=>setQuestionsLoaded(true))
 
 },[])
 
@@ -143,14 +154,28 @@ const calculateResult = useCallback(async (submittedAnswers)=>{
 let score = 0
 let totalMarks = 0
 
-questions.forEach((q,index)=>{
+const normalizedAnswers = questions.map((q,index)=>{
+const maxMarks = Number(q.marks) || 0
+const givenAnswer = submittedAnswers[index]?.answer || ""
+const normalizedGivenAnswer = givenAnswer.trim().toLowerCase()
+const normalizedCorrectAnswer = (q.answer || "").trim().toLowerCase()
+const isMcq = q.type === "mcq"
+const isCorrect = isMcq ? normalizedGivenAnswer === normalizedCorrectAnswer : false
+const autoAwardedMarks = isMcq && isCorrect ? maxMarks : 0
 
-totalMarks += q.marks
+totalMarks += maxMarks
+score += autoAwardedMarks
 
-if(submittedAnswers[index]?.answer?.trim().toLowerCase() === q.answer?.trim().toLowerCase()){
-score += q.marks
+return {
+questionId: q._id,
+question: q.question,
+type: q.type || "mcq",
+answer: givenAnswer,
+maxMarks,
+isCorrect,
+autoAwardedMarks,
+awardedMarks: autoAwardedMarks,
 }
-
 })
 
 const email = user?.email
@@ -169,7 +194,7 @@ body:JSON.stringify({
 email,
 score,
 totalMarks,
-answers:submittedAnswers
+answers:normalizedAnswers
 })
 })
 
@@ -474,7 +499,7 @@ Redirecting to dashboard in 5 seconds...
 
 ) : (
 
-questions[current] && (
+questions[current] ? (
 
 <div className="bg-white p-6 md:p-10 rounded shadow w-full md:w-175">
 
@@ -498,6 +523,22 @@ Time: {Math.floor(time/60)}:{time%60 < 10 ? "0" : ""}{time%60}
 Marks: {questions[current].marks}
 </p>
 
+{questions[current].type === "mcq" && Array.isArray(questions[current].options) && questions[current].options.length === 4 ? (
+<div className="space-y-2 mb-4">
+{questions[current].options.map((option,optionIndex)=>(
+<label key={`${questions[current]._id}-option-${optionIndex}`} className="flex items-center gap-2 border rounded p-2 cursor-pointer hover:bg-gray-50">
+<input
+type="radio"
+name={`question-${questions[current]._id}`}
+value={option}
+checked={answer === option}
+onChange={(e)=>setAnswer(e.target.value)}
+/>
+<span>{option}</span>
+</label>
+))}
+</div>
+) : (
 <input
 type="text"
 placeholder="Type your answer..."
@@ -505,6 +546,7 @@ value={answer}
 onChange={(e)=>setAnswer(e.target.value)}
 className="w-full border p-3 rounded mb-4"
 />
+)}
 
 <button
 onClick={nextQuestion}
@@ -513,6 +555,22 @@ className="bg-blue-600 text-white px-4 py-2 rounded"
 {current === questions.length - 1 ? "Finish" : "Next Question"}
 </button>
 
+</div>
+
+) : (
+
+<div className="bg-white p-6 md:p-10 rounded shadow w-full max-w-100 text-center">
+<h2 className="text-2xl font-bold mb-4">No Questions Available</h2>
+<p className="text-gray-600 mb-6">No exam is available for you yet.</p>
+<button
+onClick={()=>{
+setStartExam(false)
+router.push("/dashboard")
+}}
+className="bg-blue-600 text-white px-6 py-2 rounded"
+>
+Back to Dashboard
+</button>
 </div>
 
 )

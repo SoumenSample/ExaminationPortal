@@ -1,6 +1,10 @@
 import { connectDB } from "@/lib/db"
 import User from "@/models/User"
-import StaffActivity from "@/models/StaffActivity"
+import MemberActivity from "@/models/memberActivity"
+
+function isMemberRole(role) {
+  return role === "member" || role === "staff"
+}
 
 function normalizeDateKey(value) {
   if (!value) return ""
@@ -37,13 +41,13 @@ export async function GET(req) {
       return Response.json({ message: "userId is required" }, { status: 400 })
     }
 
-    const staff = await User.findById(userId).select("_id role name")
+    const member = await User.findById(userId).select("_id role name")
 
-    if (!staff || staff.role !== "staff") {
-      return Response.json({ message: "Only staff users are allowed" }, { status: 403 })
+    if (!member || !isMemberRole(member.role)) {
+      return Response.json({ message: "Only member users are allowed" }, { status: 403 })
     }
 
-    const rows = await StaffActivity.find({ staffId: staff._id })
+    const rows = await MemberActivity.find({ MemberId: member._id })
       .sort({ activityDate: -1, createdAt: -1 })
       .lean()
 
@@ -57,11 +61,11 @@ export async function GET(req) {
     }))
 
     return Response.json({
-      staff: { _id: String(staff._id), name: staff.name || "" },
+      member: { _id: String(member._id), name: member.name || "" },
       activities,
     })
   } catch (error) {
-    return Response.json({ message: error.message || "Failed to load staff activity" }, { status: 500 })
+    return Response.json({ message: error.message || "Failed to load member activity" }, { status: 500 })
   }
 }
 
@@ -92,16 +96,16 @@ export async function POST(req) {
       )
     }
 
-    const staff = await User.findById(userId).select("_id role")
+    const member = await User.findById(userId).select("_id role")
 
-    if (!staff || staff.role !== "staff") {
-      return Response.json({ message: "Only staff users are allowed" }, { status: 403 })
+    if (!member || !isMemberRole(member.role)) {
+      return Response.json({ message: "Only member users are allowed" }, { status: 403 })
     }
 
     const activityDate = new Date(`${dateKey}T00:00:00.000Z`)
 
-    const saved = await StaffActivity.findOneAndUpdate(
-      { staffId: staff._id, dateKey },
+    const saved = await MemberActivity.findOneAndUpdate(
+      { MemberId: member._id, dateKey },
       {
         $set: {
           activityDate,
@@ -115,7 +119,7 @@ export async function POST(req) {
     ).lean()
 
     return Response.json({
-      message: "Staff activity saved",
+      message: "Member activity saved",
       activity: {
         _id: String(saved._id),
         date: saved.dateKey,
@@ -126,7 +130,7 @@ export async function POST(req) {
       },
     })
   } catch (error) {
-    return Response.json({ message: error.message || "Failed to save staff activity" }, { status: 500 })
+    return Response.json({ message: error.message || "Failed to save member activity" }, { status: 500 })
   }
 }
 
@@ -146,21 +150,21 @@ export async function PATCH(req) {
       return Response.json({ message: "action must be check-in or check-out" }, { status: 400 })
     }
 
-    const staff = await User.findById(userId).select("_id role")
+    const member = await User.findById(userId).select("_id role")
 
-    if (!staff || staff.role !== "staff") {
-      return Response.json({ message: "Only staff users are allowed" }, { status: 403 })
+    if (!member || !isMemberRole(member.role)) {
+      return Response.json({ message: "Only member users are allowed" }, { status: 403 })
     }
 
     const { dateKey, time } = getServerDateTimeParts()
     const activityDate = new Date(`${dateKey}T00:00:00.000Z`)
 
     if (action === "check-in") {
-      const savedCheckIn = await StaffActivity.findOneAndUpdate(
-        { staffId: staff._id, dateKey },
+      const savedCheckIn = await MemberActivity.findOneAndUpdate(
+        { MemberId: member._id, dateKey },
         {
           $set: {
-            staffId: staff._id,
+            MemberId: member._id,
             activityDate,
             dateKey,
             checkIn: time,
@@ -182,7 +186,7 @@ export async function PATCH(req) {
       })
     }
 
-    const existing = await StaffActivity.findOne({ staffId: staff._id, dateKey })
+    const existing = await MemberActivity.findOne({ MemberId: member._id, dateKey })
 
     if (!existing || !existing.checkIn) {
       return Response.json({ message: "Please check in first" }, { status: 400 })

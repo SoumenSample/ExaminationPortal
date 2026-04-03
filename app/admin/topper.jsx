@@ -6,6 +6,9 @@ export default function ItemPage() {
 
   const [items,setItems] = useState([])
   const [showModal,setShowModal] = useState(false)
+  const [deletingId,setDeletingId] = useState(null)
+  const [deleteTarget,setDeleteTarget] = useState(null)
+  const [deleteError,setDeleteError] = useState("")
 
   const [form,setForm] = useState({
   name:"",
@@ -103,6 +106,30 @@ async function handleSubmit(e){
   setShowModal(false)
   fetchItems()
 }
+
+async function handleDelete(id){
+  try{
+    setDeleteError("")
+    setDeletingId(id)
+
+    const res = await fetch(`/api/topper/${id}`,{
+      method:"DELETE"
+    })
+
+    if(!res.ok){
+      const data = await res.json().catch(()=>null)
+      throw new Error(data?.message || "Failed to delete topper")
+    }
+
+    setItems((prev)=>prev.filter((item)=>item._id !== id))
+    setDeleteTarget(null)
+  }catch(error){
+    setDeleteError(error.message || "Failed to delete topper")
+  }finally{
+    setDeletingId(null)
+  }
+}
+
   return(
 
     <div className="p-6 bg-gray-100 min-h-screen">
@@ -117,6 +144,12 @@ async function handleSubmit(e){
 
       <h1 className="text-2xl font-bold mb-6">Items</h1>
 
+      {deleteError && (
+        <div className="mb-4 rounded bg-red-100 text-red-700 px-3 py-2 text-sm">
+          {deleteError}
+        </div>
+      )}
+
       {/* LIST */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
@@ -129,6 +162,18 @@ async function handleSubmit(e){
             <p className="text-sm text-gray-500">{item.year}</p>
             <p className="text-sm mt-2">{item.description}</p>
 
+            <button
+              type="button"
+              onClick={()=>{
+                setDeleteError("")
+                setDeleteTarget(item)
+              }}
+              disabled={deletingId === item._id}
+              className="mt-3 w-full bg-red-600 text-white py-2 rounded disabled:opacity-50"
+            >
+              {deletingId === item._id ? "Deleting..." : "Delete"}
+            </button>
+
           </div>
         ))}
 
@@ -138,7 +183,7 @@ async function handleSubmit(e){
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
 
-          <div className="bg-white p-6 rounded w-[400px] relative">
+          <div className="bg-white p-6 rounded w-100 relative">
 
             <button
               onClick={()=>setShowModal(false)}
@@ -188,6 +233,37 @@ async function handleSubmit(e){
 
             </form>
 
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded w-100">
+            <h2 className="text-xl font-bold mb-2">Delete Topper</h2>
+            <p className="text-sm text-gray-600 mb-5">
+              Are you sure you want to delete <span className="font-semibold">{deleteTarget.name}</span>?
+            </p>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={()=>setDeleteTarget(null)}
+                disabled={deletingId === deleteTarget._id}
+                className="px-4 py-2 rounded border border-gray-300"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={()=>handleDelete(deleteTarget._id)}
+                disabled={deletingId === deleteTarget._id}
+                className="px-4 py-2 rounded bg-red-600 text-white disabled:opacity-50"
+              >
+                {deletingId === deleteTarget._id ? "Deleting..." : "Delete"}
+              </button>
+            </div>
           </div>
         </div>
       )}

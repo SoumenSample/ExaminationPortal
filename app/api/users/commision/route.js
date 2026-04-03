@@ -19,10 +19,17 @@ if(!["pending","paid"].includes(paymentStatus)){
 return Response.json({message:"Invalid payment status"}, {status:400})
 }
 
-const updated = await User.findByIdAndUpdate(
-userId,
-paymentStatus === "paid"
-? {
+let updateQuery = {
+$set: {
+paymentStatus: "pending"
+}
+}
+
+if(paymentStatus === "paid"){
+const amountPaid = Number(user.currentCommission || 0)
+
+updateQuery = {
+$set: {
 paymentStatus: "paid",
 currentCommission: 0,
 referralCount: 0,
@@ -30,11 +37,20 @@ referral100Count: 0,
 referral150Count: 0,
 referral200Count: 0
 }
-: {
-paymentStatus: "pending"
-},
-{ new: true }
-)
+}
+
+if(amountPaid > 0){
+updateQuery.$push = {
+commissionPayouts: {
+amount: amountPaid,
+paidAt: new Date(),
+paymentStatus: "paid"
+}
+}
+}
+}
+
+const updated = await User.findByIdAndUpdate(userId, updateQuery, { new: true })
 
 return Response.json(updated)
 

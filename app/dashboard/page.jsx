@@ -59,7 +59,6 @@ export default function Dashboard() {
 
   const [chatOpen, setChatOpen] = useState(false)
   const [topperData, setTopperData] = useState([])
-  const [activeTopper, setActiveTopper] = useState(null)
   const [shareStatus, setShareStatus] = useState("")
 
   const unreadCount = notifications.filter((item) => !item.isRead).length
@@ -195,6 +194,17 @@ export default function Dashboard() {
     return () => clearInterval(timer)
   }, [scheduledAt])
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+
+    const originalOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+
+    return () => {
+      document.body.style.overflow = originalOverflow
+    }
+  }, [mobileMenuOpen])
+
   const markAsRead = async () => {
     const unreadNotifications = notifications.filter((item) => !item.isRead)
     if (unreadNotifications.length === 0) return
@@ -224,7 +234,7 @@ export default function Dashboard() {
       localStorage.removeItem("userId")
       localStorage.removeItem("userRole")
       localStorage.removeItem("userName")
-      router.push("/login")
+      router.push("/")
     }
   }
 
@@ -285,6 +295,25 @@ export default function Dashboard() {
     return null
   }
 
+  const topperSlider = topperData.length > 0 && (
+    <div className="w-full overflow-hidden bg-white rounded-xl p-4 shadow">
+      <h3 className="font-semibold mb-3">Topper List</h3>
+      <div className="flex gap-6 animate-scrollX">
+        {topperData.map((topper) => (
+          <div key={topper._id} className="shrink-0 flex flex-col items-center text-center w-28">
+            <img
+              src={topper.image}
+              alt={topper.name || "Topper image"}
+              className="w-24 h-24 rounded-full object-cover border-4 border-black shadow"
+            />
+            <p className="mt-2 text-sm font-semibold leading-tight">{topper.name || "-"}</p>
+            <p className="text-xs text-gray-600">Year: {topper.year || "-"}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
   return (
     <div className="flex min-h-screen bg-gray-100 text-slate-900">
       <aside className="hidden md:block w-72 bg-white shadow-md">
@@ -343,119 +372,135 @@ export default function Dashboard() {
           </div>
 
           {mobileMenuOpen && (
-            <>
-              <div
-                className="fixed inset-0 bg-black/20 z-30 md:hidden"
+            <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true">
+              <button
+                type="button"
+                className="absolute inset-0 bg-black/45"
                 onClick={() => setMobileMenuOpen(false)}
+                aria-label="Close menu backdrop"
               />
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white border rounded-lg shadow-lg p-3 z-40 md:hidden">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="font-semibold">Menu</p>
-                  <button
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="w-8 h-8 rounded border border-gray-300 flex items-center justify-center"
-                    aria-label="Close menu"
-                  >
-                    X
-                  </button>
+
+              <aside className="absolute left-0 top-0 h-full w-[82%] max-w-xs bg-white shadow-2xl flex flex-col">
+                <div className="bg-linear-to-r from-blue-900 to-sky-500 text-white p-5">
+                  <Image
+                    src={logo}
+                    alt="Examination Portal Logo"
+                    width={72}
+                    height={72}
+                    className="rounded object-cover mb-3 bg-white"
+                  />
+                  <p className="font-semibold text-2xl leading-tight">{user.name || "Student"}</p>
+                  <p className="text-white/90 text-sm mt-2">Name: {user.name || "-"}</p>
+                  <p className="text-white/90 text-sm">Class: {formatClassValue(user.class)}</p>
+                  <p className="text-white/90 text-sm">Sec: {formatSectionValue(user.section)}</p>
+                  <p className="text-white/90 text-sm">Roll: {formatRollValue(user.rollNo)}</p>
+                  <p className="text-white/90 text-sm break-all">Email ID: {user.email || "-"}</p>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  {MENU_ITEMS.map((item) => (
-                    <button
-                      key={item.value}
-                      onClick={() => {
-                        setActiveTab(item.value)
-                        setMobileMenuOpen(false)
-                      }}
-                      className={`text-left px-4 py-2 rounded ${
-                        activeTab === item.value ? "bg-blue-600 text-white" : "hover:bg-gray-200"
-                      }`}
-                    >
-                      {item.icon} {item.label}
-                    </button>
-                  ))}
+                <div className="p-4 flex-1 overflow-y-auto">
+                  <div className="space-y-1">
+                    {MENU_ITEMS.map((item) => (
+                      <button
+                        key={item.value}
+                        onClick={() => {
+                          setActiveTab(item.value)
+                          setMobileMenuOpen(false)
+                        }}
+                        className={`w-full text-left px-3 py-3 rounded-lg transition flex items-center gap-3 text-lg ${
+                          activeTab === item.value
+                            ? "bg-blue-600 text-white"
+                            : "text-slate-800 hover:bg-blue-50"
+                        }`}
+                      >
+                        <span className="w-7 text-center">{item.icon}</span>
+                        <span>{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
 
                   <button
                     onClick={logout}
-                    className="text-left px-4 py-2 rounded text-red-600 hover:bg-red-50"
+                    className="w-full text-left px-3 py-3 mt-4 rounded-lg text-red-700 hover:bg-red-50 flex items-center gap-3 text-lg"
                   >
-                    ↪ Logout
+                    <span className="w-7 text-center">↪</span>
+                    <span>Logout</span>
                   </button>
                 </div>
-              </div>
-            </>
+              </aside>
+            </div>
           )}
 
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setNotificationOpen((prev) => !prev)}
-              className="text-xl relative cursor-pointer"
-              aria-label="Toggle notifications"
-            >
-              🔔
+          <div className="ml-auto flex items-center gap-4">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setNotificationOpen((prev) => !prev)}
+                className="text-xl relative cursor-pointer"
+                aria-label="Toggle notifications"
+              >
+                🔔
 
-              {unreadCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 rounded-full">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 rounded-full">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
 
-            {notificationOpen && (
-              <div className="absolute right-0 mt-2 w-72 bg-white shadow rounded p-4 z-50">
-              <h3 className="font-bold mb-2">Notifications</h3>
+              {notificationOpen && (
+                <div className="absolute right-0 mt-2 w-72 bg-white shadow rounded p-4 z-50">
+                <h3 className="font-bold mb-2">Notifications</h3>
 
-              {notifications.length === 0 ? (
-                <p className="text-sm text-gray-500">No notifications</p>
-              ) : (
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {notifications.map((item) => (
-                    <div
-                      key={item._id}
-                      className={`border p-2 rounded text-sm ${item.isRead ? "bg-gray-50" : "bg-white"}`}
-                    >
-                      <p className="font-semibold">
-                        {item.title} {item.isRead ? "(Read)" : "(New)"}
-                      </p>
-                      <p className="text-xs text-gray-600">{item.message}</p>
-                    </div>
-                  ))}
+                {notifications.length === 0 ? (
+                  <p className="text-sm text-gray-500">No notifications</p>
+                ) : (
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {notifications.map((item) => (
+                      <div
+                        key={item._id}
+                        className={`border p-2 rounded text-sm ${item.isRead ? "bg-gray-50" : "bg-white"}`}
+                      >
+                        <p className="font-semibold">
+                          {item.title} {item.isRead ? "(Read)" : "(New)"}
+                        </p>
+                        <p className="text-xs text-gray-600">{item.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  onClick={markAsRead}
+                  disabled={unreadCount === 0}
+                  className="mt-3 w-full bg-blue-600 text-white py-1 rounded disabled:opacity-60"
+                >
+                  Mark as Read
+                </button>
                 </div>
               )}
-
-              <button
-                onClick={markAsRead}
-                disabled={unreadCount === 0}
-                className="mt-3 w-full bg-blue-600 text-white py-1 rounded disabled:opacity-60"
-              >
-                Mark as Read
-              </button>
-              </div>
-            )}
-          </div>
-
-          <div className="relative">
-            <div
-              onClick={() => setOpen(!open)}
-              className="w-10 h-10 bg-blue-600 text-white flex items-center justify-center rounded-full cursor-pointer font-bold"
-            >
-              {user?.email?.charAt(0).toUpperCase() || "U"}
             </div>
 
-            {open && (
-              <div className="absolute right-0 mt-3 w-60 bg-white border rounded shadow-lg p-4 z-50">
-                <p className="text-sm text-gray-500">Email</p>
-                <p className="font-medium mb-3 break-all">{user?.email}</p>
-                <p className="text-sm text-gray-500">Role</p>
-                <p className="font-medium mb-3 capitalize">{user?.role}</p>
-
-                <button onClick={logout} className="w-full bg-red-500 text-white py-2 rounded">
-                  Logout
-                </button>
+            <div className="relative">
+              <div
+                onClick={() => setOpen(!open)}
+                className="w-10 h-10 bg-blue-600 text-white flex items-center justify-center rounded-full cursor-pointer font-bold"
+              >
+                {user?.email?.charAt(0).toUpperCase() || "U"}
               </div>
-            )}
+
+              {open && (
+                <div className="absolute right-0 mt-3 w-60 bg-white border rounded shadow-lg p-4 z-50">
+                  <p className="text-sm text-gray-500">Email</p>
+                  <p className="font-medium mb-3 break-all">{user?.email}</p>
+                  <p className="text-sm text-gray-500">Role</p>
+                  <p className="font-medium mb-3 capitalize">{user?.role}</p>
+
+                  <button onClick={logout} className="w-full bg-red-500 text-white py-2 rounded">
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -467,6 +512,8 @@ export default function Dashboard() {
                 Track your exam activity, study content, and updates from one place.
               </p>
             </div>
+
+            {topperSlider}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {quickStats.map((item) => (
@@ -507,42 +554,7 @@ export default function Dashboard() {
 
         {activeTab === "dashboard" && (
           <div className="flex flex-col items-center gap-10">
-            {topperData.length > 0 && (
-              <div className="w-full overflow-hidden">
-                <div className="flex gap-6 animate-scrollX">
-                  {topperData.map((topper, index) => (
-                    <div
-                      key={topper._id}
-                      className="relative shrink-0 cursor-pointer"
-                      onClick={() =>
-                        setActiveTopper(activeTopper === topper._id ? null : topper._id)
-                      }
-                    >
-                      <img
-                        src={topper.image}
-                        alt={topper.name || "Topper image"}
-                        className="w-40 h-40 md:w-24 md:h-24 rounded-full object-cover border-4 border-black shadow"
-                      />
-
-                      {activeTopper === topper._id && (
-                        <div className="absolute inset-0 bg-black bg-opacity-70 rounded-full flex flex-col items-center justify-center text-white text-[10px] px-2 text-center">
-                          <p className="font-bold">Name-{topper.name}</p>
-                          <p>Year-{topper.year}</p>
-                          <p className="truncate">Desc-{topper.description}</p>
-                        </div>
-                      )}
-
-                      {index < topperData.length - 1 && (
-                        <div
-                          className="absolute top-1/2 left-full -translate-y-1/2 w-6 h-1 bg-orange-300 rounded-full"
-                          aria-hidden="true"
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {topperSlider}
 
             <div className="bg-white p-6 md:p-10 rounded shadow w-full max-w-105 text-center">
               <h2 className="text-2xl font-bold mb-4">Online Examination</h2>

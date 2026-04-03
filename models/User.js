@@ -139,6 +139,21 @@ type:String,
 enum:["pending","paid"],
 default:"pending"
 },
+commissionPayouts:[{
+amount:{
+type:Number,
+default:0
+},
+paidAt:{
+type:Date,
+default:Date.now
+},
+paymentStatus:{
+type:String,
+enum:["paid"],
+default:"paid"
+}
+}],
 
 password:String
 
@@ -162,6 +177,7 @@ state:{ type:String, default:"" },
 bankDetails:{ type:String, default:"" },
 rollNo:{ type:String, default:"" },
 section:{ type:String, default:"" },
+commissionPayouts:{ type:[{ amount:{ type:Number, default:0 }, paidAt:{ type:Date, default:Date.now }, paymentStatus:{ type:String, enum:["paid"], default:"paid" } }], default:[] },
 }
 
 Object.entries(runtimeAdditions).forEach(([key,definition])=>{

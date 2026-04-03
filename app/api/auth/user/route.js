@@ -65,7 +65,8 @@ uniqueCode:user.uniqueCode,
 currentCommission:user.currentCommission || 0,
 totalCommission:user.totalCommission || 0,
 totalReferralCount:user.totalReferralCount || 0,
-paymentStatus:user.paymentStatus || "pending"
+paymentStatus:user.paymentStatus || "pending",
+commissionPayouts:Array.isArray(user.commissionPayouts) ? user.commissionPayouts : []
 })
 
 }catch(error){

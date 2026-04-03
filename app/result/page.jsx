@@ -11,6 +11,10 @@ const [result,setResult] = useState(null)
 const [loading,setLoading] = useState(true)
 const [errorMessage,setErrorMessage] = useState("")
 
+const goToDashboard = ()=>{
+router.push("/dashboard")
+}
+
 useEffect(()=>{
 
 const userId = localStorage.getItem("userId")
@@ -60,6 +64,12 @@ return(
 <div className="bg-white p-8 rounded shadow text-center">
 <h2 className="text-2xl font-bold mb-4">Unable to load result</h2>
 <p className="text-gray-600">{errorMessage}</p>
+<button
+onClick={goToDashboard}
+className="mt-5 px-4 py-2 bg-slate-700 text-white rounded"
+>
+Close
+</button>
 </div>
 </div>
 )
@@ -71,6 +81,12 @@ return(
 <div className="bg-white p-8 rounded shadow text-center">
 <h2 className="text-2xl font-bold mb-4">Result Not Found</h2>
 <p className="text-gray-600">No result record exists for your email yet.</p>
+<button
+onClick={goToDashboard}
+className="mt-5 px-4 py-2 bg-slate-700 text-white rounded"
+>
+Close
+</button>
 </div>
 </div>
 )
@@ -89,6 +105,13 @@ Result Not Published
 <p className="text-gray-600">
 Admin has not published your result yet.
 </p>
+
+<button
+onClick={goToDashboard}
+className="mt-5 px-4 py-2 bg-slate-700 text-white rounded"
+>
+Close
+</button>
 
 </div>
 
@@ -121,6 +144,15 @@ Exam Result
 <p className="text-lg">
 <strong>Percentage:</strong> {((result.score/result.totalMarks)*100).toFixed(2)}%
 </p>
+
+<div className="mt-6">
+<button
+onClick={goToDashboard}
+className="px-5 py-2 bg-slate-700 text-white rounded"
+>
+Close
+</button>
+</div>
 
 </div>
 

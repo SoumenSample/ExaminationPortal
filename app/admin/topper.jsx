@@ -6,14 +6,28 @@ export default function ItemPage() {
 
   const [items,setItems] = useState([])
   const [showModal,setShowModal] = useState(false)
+  const [showEditModal,setShowEditModal] = useState(false)
   const [deletingId,setDeletingId] = useState(null)
+  const [updatingId,setUpdatingId] = useState(null)
   const [deleteTarget,setDeleteTarget] = useState(null)
   const [deleteError,setDeleteError] = useState("")
+  const [editError,setEditError] = useState("")
 
   const [form,setForm] = useState({
   name:"",
   year:"",
+  ageGroupCategory:"",
   description:"",
+  file:null
+})
+
+  const [editForm,setEditForm] = useState({
+  id:"",
+  name:"",
+  year:"",
+  ageGroupCategory:"",
+  description:"",
+  image:"",
   file:null
 })
 
@@ -91,6 +105,7 @@ async function handleSubmit(e){
     body:JSON.stringify({
       name: form.name,
       year: form.year,
+      ageGroupCategory: form.ageGroupCategory,
       description: form.description,
       image: imageUrl
     })
@@ -99,6 +114,7 @@ async function handleSubmit(e){
   setForm({
     name:"",
     year:"",
+    ageGroupCategory:"",
     description:"",
     file:null
   })
@@ -127,6 +143,73 @@ async function handleDelete(id){
     setDeleteError(error.message || "Failed to delete topper")
   }finally{
     setDeletingId(null)
+  }
+}
+
+function openEditModal(item){
+  setEditError("")
+  setEditForm({
+    id:item._id,
+    name:item.name || "",
+    year:item.year || "",
+    ageGroupCategory:item.ageGroupCategory || "",
+    description:item.description || "",
+    image:item.image || "",
+    file:null
+  })
+  setShowEditModal(true)
+}
+
+async function handleEditSubmit(e){
+  e.preventDefault()
+
+  try{
+    setEditError("")
+    setUpdatingId(editForm.id)
+
+    let imageUrl = editForm.image || ""
+
+    if(editForm.file){
+      const formData = new FormData()
+      formData.append("file", editForm.file)
+
+      const uploadRes = await fetch("/api/upload",{
+        method:"POST",
+        body:formData
+      })
+
+      if(!uploadRes.ok){
+        throw new Error("Failed to upload image")
+      }
+
+      const uploadData = await uploadRes.json()
+      imageUrl = uploadData.url || imageUrl
+    }
+
+    const res = await fetch(`/api/topper/${editForm.id}`,{
+      method:"PATCH",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({
+        name: editForm.name,
+        year: editForm.year,
+        ageGroupCategory: editForm.ageGroupCategory,
+        description: editForm.description,
+        image: imageUrl
+      })
+    })
+
+    if(!res.ok){
+      const data = await res.json().catch(()=>null)
+      throw new Error(data?.message || "Failed to update topper")
+    }
+
+    const updatedItem = await res.json()
+    setItems((prev)=>prev.map((item)=>item._id === updatedItem._id ? updatedItem : item))
+    setShowEditModal(false)
+  }catch(error){
+    setEditError(error.message || "Failed to update topper")
+  }finally{
+    setUpdatingId(null)
   }
 }
 
@@ -160,19 +243,31 @@ async function handleDelete(id){
 
             <h2 className="font-bold">{item.name}</h2>
             <p className="text-sm text-gray-500">{item.year}</p>
+            <p className="text-sm text-gray-500">Age Group: {item.ageGroupCategory || "-"}</p>
             <p className="text-sm mt-2">{item.description}</p>
 
-            <button
-              type="button"
-              onClick={()=>{
-                setDeleteError("")
-                setDeleteTarget(item)
-              }}
-              disabled={deletingId === item._id}
-              className="mt-3 w-full bg-red-600 text-white py-2 rounded disabled:opacity-50"
-            >
-              {deletingId === item._id ? "Deleting..." : "Delete"}
-            </button>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={()=>openEditModal(item)}
+                disabled={updatingId === item._id}
+                className="flex-1 bg-amber-500 text-white py-2 rounded disabled:opacity-50"
+              >
+                {updatingId === item._id ? "Updating..." : "Edit"}
+              </button>
+
+              <button
+                type="button"
+                onClick={()=>{
+                  setDeleteError("")
+                  setDeleteTarget(item)
+                }}
+                disabled={deletingId === item._id}
+                className="flex-1 bg-red-600 text-white py-2 rounded disabled:opacity-50"
+              >
+                {deletingId === item._id ? "Deleting..." : "Delete"}
+              </button>
+            </div>
 
           </div>
         ))}
@@ -211,6 +306,18 @@ async function handleDelete(id){
                 className="w-full border p-2"
                 required
               />
+
+              <select
+                value={form.ageGroupCategory}
+                onChange={(e)=>setForm({...form,ageGroupCategory:e.target.value})}
+                className="w-full border p-2"
+                required
+              >
+                <option value="">Select Age Group Category</option>
+                <option value="8-12">8-12</option>
+                <option value="13-16">13-16</option>
+                <option value="17-22">17-22</option>
+              </select>
 
               <input
   type="file"
@@ -264,6 +371,80 @@ async function handleDelete(id){
                 {deletingId === deleteTarget._id ? "Deleting..." : "Delete"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded w-100 relative">
+            <button
+              type="button"
+              onClick={()=>setShowEditModal(false)}
+              className="absolute top-2 right-2 text-red-500"
+            >
+              ✕
+            </button>
+
+            <h2 className="text-xl font-bold mb-4">Edit Item</h2>
+
+            {editError && (
+              <div className="mb-3 rounded bg-red-100 text-red-700 px-3 py-2 text-sm">
+                {editError}
+              </div>
+            )}
+
+            <form onSubmit={handleEditSubmit} className="space-y-3">
+              <input
+                placeholder="Name"
+                value={editForm.name}
+                onChange={(e)=>setEditForm({...editForm,name:e.target.value})}
+                className="w-full border p-2"
+                required
+              />
+
+              <input
+                placeholder="Year"
+                value={editForm.year}
+                onChange={(e)=>setEditForm({...editForm,year:e.target.value})}
+                className="w-full border p-2"
+                required
+              />
+
+              <select
+                value={editForm.ageGroupCategory}
+                onChange={(e)=>setEditForm({...editForm,ageGroupCategory:e.target.value})}
+                className="w-full border p-2"
+                required
+              >
+                <option value="">Select Age Group Category</option>
+                <option value="8-12">8-12</option>
+                <option value="13-16">13-16</option>
+                <option value="17-22">17-22</option>
+              </select>
+
+              <input
+                type="file"
+                onChange={(e)=>setEditForm({...editForm, file:e.target.files[0]})}
+                className="w-full border p-2"
+              />
+
+              <textarea
+                placeholder="Description"
+                value={editForm.description}
+                onChange={(e)=>setEditForm({...editForm,description:e.target.value})}
+                className="w-full border p-2"
+                required
+              />
+
+              <button
+                type="submit"
+                disabled={updatingId === editForm.id}
+                className="bg-amber-500 text-white w-full py-2 rounded disabled:opacity-50"
+              >
+                {updatingId === editForm.id ? "Updating..." : "Update"}
+              </button>
+            </form>
           </div>
         </div>
       )}

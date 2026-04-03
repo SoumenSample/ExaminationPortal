@@ -308,6 +308,7 @@ export default function Dashboard() {
             />
             <p className="mt-2 text-sm font-semibold leading-tight">{topper.name || "-"}</p>
             <p className="text-xs text-gray-600">Year: {topper.year || "-"}</p>
+            <p className="text-xs text-gray-600">Age Group: {topper.ageGroupCategory || "-"}</p>
           </div>
         ))}
       </div>

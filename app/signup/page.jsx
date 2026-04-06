@@ -21,6 +21,7 @@ const initialForm = {
   section:"",
   class:"",
   registrationSchool:"",
+  registrationMember:"",
   registrationType:"individual",
   schoolRegistrationId:"",
   referralCode:"",
@@ -40,6 +41,7 @@ export default function Signup() {
   const [otpSent, setOtpSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [schools, setSchools] = useState([])
+  const [members, setMembers] = useState([])
   const [registrationFee, setRegistrationFee] = useState(0)
   const [message, setMessage] = useState("")
 
@@ -57,6 +59,25 @@ export default function Signup() {
       }
     }
     fetchSchools()
+  }, [])
+
+  useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        const res = await fetch("/api/users")
+        if (res.ok) {
+          const data = await res.json()
+          const memberUsers = Array.isArray(data)
+            ? data.filter((user) => user?.role === "member" || user?.role === "staff")
+            : []
+          setMembers(memberUsers)
+        }
+      } catch (error) {
+        console.error("Error fetching members:", error)
+      }
+    }
+
+    fetchMembers()
   }, [])
 
   // Calculate registration fee based on age
@@ -90,8 +111,38 @@ export default function Signup() {
     }))
   }, [role, form.registrationType, form.registrationSchool, schools])
 
+  useEffect(() => {
+    if (role !== "student") return
+
+    if (form.registrationType !== "member") return
+
+    const selectedMember = members.find((member) => String(member._id) === String(form.registrationMember))
+    if (!selectedMember) return
+
+    const autoReferralCode = selectedMember.uniqueCode || selectedMember.referralCode || ""
+    if (!autoReferralCode) return
+
+    setForm((prev) => ({
+      ...prev,
+      referralCode: autoReferralCode,
+    }))
+  }, [role, form.registrationType, form.registrationMember, members])
+
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+
+    if (name === "registrationType") {
+      setForm((prev) => ({
+        ...prev,
+        registrationType: value,
+        registrationSchool: "",
+        registrationMember: "",
+        referralCode: "",
+      }))
+      return
+    }
+
+    setForm({ ...form, [name]: value })
   }
 
   // Step 1: Send OTP for all roles
@@ -417,6 +468,7 @@ export default function Signup() {
                 >
                   <option value="individual">Individual Registration</option>
                   <option value="school">Registered Through School</option>
+                  <option value="member">Registered Through Member</option>
                 </select>
 
                 {form.registrationType === "school" && (
@@ -443,6 +495,30 @@ export default function Signup() {
                   </>
                 )}
 
+                {form.registrationType === "member" && (
+                  <>
+                    <select
+                      name="registrationMember"
+                      className="w-full border border-slate-300 bg-white p-2 rounded text-slate-900"
+                      value={form.registrationMember}
+                      onChange={handleChange}
+                      required={form.registrationType === "member"}
+                    >
+                      <option value="">Select Member</option>
+                      {members.length > 0 ? (
+                        members.map(member => (
+                          <option key={member._id} value={member._id}>{member.name}</option>
+                        ))
+                      ) : (
+                        <option disabled>No members available</option>
+                      )}
+                    </select>
+                    {members.length === 0 && (
+                      <p className="text-xs text-orange-600 mt-1">No members found. Please contact admin or choose Individual Registration.</p>
+                    )}
+                  </>
+                )}
+
                 <input
                   name="aadhaar"
                   placeholder="Aadhaar Number"
@@ -454,16 +530,28 @@ export default function Signup() {
 
                 <input
                   name="referralCode"
-                  placeholder={form.registrationType === "school" ? "Referral Code (Auto from school)" : "Referral Code (optional)"}
+                  placeholder={
+                    form.registrationType === "school"
+                      ? "Referral Code (Auto from school)"
+                      : form.registrationType === "member"
+                        ? "Referral Code (Auto from member)"
+                        : "Referral Code (optional)"
+                  }
                   className="w-full border border-slate-300 bg-white p-2 rounded text-slate-900 placeholder:text-slate-400"
                   value={form.referralCode}
                   onChange={handleChange}
-                  readOnly={form.registrationType === "school"}
+                  readOnly={form.registrationType === "school" || form.registrationType === "member"}
                 />
 
                 {form.registrationType === "school" && (
                   <p className="text-xs text-emerald-700 -mt-2">
                     School referral code is auto-applied from the selected school.
+                  </p>
+                )}
+
+                {form.registrationType === "member" && (
+                  <p className="text-xs text-emerald-700 -mt-2">
+                    Member referral code is auto-applied from the selected member.
                   </p>
                 )}
 

@@ -70,7 +70,7 @@ default:null
 },
 registrationType:{
 type:String,
-enum:["school","individual"],
+enum:["school","member","individual"],
 default:"individual"
 },
 registrationFee:{

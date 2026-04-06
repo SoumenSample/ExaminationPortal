@@ -131,6 +131,7 @@ export async function POST(req){
       section,
       class: studentClass,
       registrationSchool,
+      registrationMember,
       registrationType,
       otp
     } = body
@@ -257,6 +258,36 @@ export async function POST(req){
       if(!effectiveReferralCode){
         return Response.json(
           {message:"Selected school referral code is unavailable"},
+          {status:400}
+        )
+      }
+    }
+
+    if(role === "student" && registrationType === "member"){
+      if(!registrationMember){
+        return Response.json(
+          {message:"Please select a member for member registration"},
+          {status:400}
+        )
+      }
+
+      const memberUser = await User.findOne({
+        _id: registrationMember,
+        role: { $in: ["member", "staff"] }
+      }).select("_id uniqueCode referralCode")
+
+      if(!memberUser){
+        return Response.json(
+          {message:"Selected member does not have a referral code yet"},
+          {status:400}
+        )
+      }
+
+      effectiveReferralCode = (memberUser.uniqueCode || memberUser.referralCode || "").trim().toUpperCase()
+
+      if(!effectiveReferralCode){
+        return Response.json(
+          {message:"Selected member referral code is unavailable"},
           {status:400}
         )
       }

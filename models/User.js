@@ -36,7 +36,15 @@ state:{
 type:String,
 required:function(){return ["school","member","student"].includes(this.role)}
 },
-aadhaar:String,
+schoolRegistrationId:{
+type:String,
+required:function(){return this.role === "school"},
+default:""
+},
+aadhaar:{
+type:String,
+required:function(){return this.role === "member"}
+},
 
 // New fields for students
 age:{
@@ -174,6 +182,7 @@ addressLine2:{ type:String, default:"" },
 district:{ type:String, default:"" },
 pincode:{ type:String, default:"" },
 state:{ type:String, default:"" },
+schoolRegistrationId:{ type:String, default:"" },
 bankDetails:{ type:String, default:"" },
 rollNo:{ type:String, default:"" },
 section:{ type:String, default:"" },

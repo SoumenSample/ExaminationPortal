@@ -207,6 +207,7 @@ style={{
 <th className="border p-2 min-w-25">Code</th>
 <th className="border p-2 min-w-37.5">Address</th>
 <th className="border p-2 min-w-30">Aadhaar</th>
+<th className="border p-2 min-w-40">School Reg/License No</th>
 <th className="border p-2 min-w-30">Reg Date</th>
 </tr>
 
@@ -217,7 +218,7 @@ style={{
 {filteredUsers.length === 0 ? (
 
 <tr>
-<td colSpan="10" className="text-center p-4">
+<td colSpan="11" className="text-center p-4">
 No users found
 </td>
 </tr>
@@ -236,6 +237,7 @@ filteredUsers.map((user)=>(
 <td className="border p-2 min-w-25">{user.uniqueCode || "Self"}</td>
 <td className="border p-2 min-w-37.5">{user.address || "-"}</td>
 <td className="border p-2 min-w-30">{user.aadhaar || "-"}</td>
+<td className="border p-2 min-w-40">{user.role === "school" ? (user.schoolRegistrationId || "-") : "-"}</td>
 <td className="border p-2 min-w-30">{new Date(user.createdAt).toLocaleDateString()}</td>
 
 

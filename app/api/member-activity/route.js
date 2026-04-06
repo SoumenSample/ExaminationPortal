@@ -2,6 +2,9 @@ import { connectDB } from "@/lib/db"
 import User from "@/models/User"
 import MemberActivity from "@/models/memberActivity"
 
+const ACTIVITY_TIMEZONE = "Asia/Kolkata"
+const ACTIVITY_TIMEZONE_LABEL = "IST"
+
 function isMemberRole(role) {
   return role === "member" || role === "staff"
 }
@@ -20,12 +23,22 @@ function normalizeTime(value) {
 
 function getServerDateTimeParts() {
   const now = new Date()
-  const dateKey = now.toLocaleDateString("en-CA")
-  const time = now.toLocaleTimeString("en-GB", {
+  const dateFormatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ACTIVITY_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+
+  const timeFormatter = new Intl.DateTimeFormat("en-GB", {
+    timeZone: ACTIVITY_TIMEZONE,
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
   })
+
+  const dateKey = dateFormatter.format(now)
+  const time = timeFormatter.format(now)
 
   return { dateKey, time }
 }
@@ -63,6 +76,10 @@ export async function GET(req) {
     return Response.json({
       member: { _id: String(member._id), name: member.name || "" },
       activities,
+      timezone: {
+        id: ACTIVITY_TIMEZONE,
+        label: ACTIVITY_TIMEZONE_LABEL,
+      },
     })
   } catch (error) {
     return Response.json({ message: error.message || "Failed to load member activity" }, { status: 500 })
@@ -128,6 +145,10 @@ export async function POST(req) {
         report: saved.report || "",
         updatedAt: saved.updatedAt,
       },
+      timezone: {
+        id: ACTIVITY_TIMEZONE,
+        label: ACTIVITY_TIMEZONE_LABEL,
+      },
     })
   } catch (error) {
     return Response.json({ message: error.message || "Failed to save member activity" }, { status: 500 })
@@ -183,6 +204,10 @@ export async function PATCH(req) {
           report: savedCheckIn.report || "",
           updatedAt: savedCheckIn.updatedAt,
         },
+        timezone: {
+          id: ACTIVITY_TIMEZONE,
+          label: ACTIVITY_TIMEZONE_LABEL,
+        },
       })
     }
 
@@ -204,6 +229,10 @@ export async function PATCH(req) {
         checkOut: existing.checkOut || "",
         report: existing.report || "",
         updatedAt: existing.updatedAt,
+      },
+      timezone: {
+        id: ACTIVITY_TIMEZONE,
+        label: ACTIVITY_TIMEZONE_LABEL,
       },
     })
   } catch (error) {

@@ -58,6 +58,9 @@ export default function ReportsDashboard() {
 
   const [schoolReport, setSchoolReport] = useState([])
   const [MemberReport, setMemberReport] = useState([])
+  const [selectedEntityLabel, setSelectedEntityLabel] = useState("")
+  const [selectedEntityType, setSelectedEntityType] = useState("")
+  const [selectedStudents, setSelectedStudents] = useState([])
 
   const [activeTab, setActiveTab] = useState("school")
   const [search, setSearch] = useState("")
@@ -139,9 +142,10 @@ export default function ReportsDashboard() {
 
   const handleExportExcel = () => {
     if (activeTab === "school") {
-      const headers = ["School Name", "Total Students"]
+      const headers = ["School Name", "Reg/License No", "Total Students"]
       const lines = filteredSchool.map((row) => [
         row.schoolName,
+        row.schoolRegistrationId || "-",
         row.studentCount,
       ])
       const csv = [headers, ...lines]
@@ -179,8 +183,8 @@ export default function ReportsDashboard() {
     if (activeTab === "school") {
       const html = buildPdfTableHtml(
         "School-wise Student Registrations",
-        ["School Name", "Total Students"],
-        filteredSchool.map((row) => [row.schoolName, row.studentCount])
+        ["School Name", "Reg/License No", "Total Students"],
+        filteredSchool.map((row) => [row.schoolName, row.schoolRegistrationId || "-", row.studentCount])
       )
       w.document.write(html)
       w.document.close()
@@ -209,6 +213,18 @@ export default function ReportsDashboard() {
     setSearch("")
     setMinCount("")
     setMaxCount("")
+  }
+
+  const openStudentDrilldown = (type, label, students) => {
+    setSelectedEntityType(type)
+    setSelectedEntityLabel(label || "-")
+    setSelectedStudents(Array.isArray(students) ? students : [])
+  }
+
+  const closeStudentDrilldown = () => {
+    setSelectedEntityType("")
+    setSelectedEntityLabel("")
+    setSelectedStudents([])
   }
 
   if (loading) {
@@ -305,20 +321,30 @@ export default function ReportsDashboard() {
               <thead className="bg-gray-100">
                 <tr>
                   <th className="border p-2 text-left">School Name</th>
+                  <th className="border p-2 text-left">Reg/License No</th>
                   <th className="border p-2 text-center">Student Count</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredSchool.length === 0 ? (
                   <tr>
-                    <td colSpan="2" className="p-4 text-center text-gray-500">
+                    <td colSpan="3" className="p-4 text-center text-gray-500">
                       No data found for selected filters.
                     </td>
                   </tr>
                 ) : (
                   filteredSchool.map((row, idx) => (
                     <tr key={row.schoolId || idx} className="odd:bg-white even:bg-gray-50">
-                      <td className="border p-2">{row.schoolName}</td>
+                      <td className="border p-2">
+                        <button
+                          type="button"
+                          onClick={() => openStudentDrilldown("school", row.schoolName, row.students)}
+                          className="text-blue-700 hover:underline font-medium"
+                        >
+                          {row.schoolName || "-"}
+                        </button>
+                      </td>
+                      <td className="border p-2">{row.schoolRegistrationId || "-"}</td>
                       <td className="border p-2 text-center font-semibold">{row.studentCount || 0}</td>
                     </tr>
                   ))
@@ -347,7 +373,15 @@ export default function ReportsDashboard() {
                 ) : (
                   filteredMember.map((row, idx) => (
                     <tr key={row._id || idx} className="odd:bg-white even:bg-gray-50">
-                      <td className="border p-2">{row.name}</td>
+                      <td className="border p-2">
+                        <button
+                          type="button"
+                          onClick={() => openStudentDrilldown("member", row.name, row.referredStudents)}
+                          className="text-blue-700 hover:underline font-medium"
+                        >
+                          {row.name || "-"}
+                        </button>
+                      </td>
                       <td className="border p-2">{row.email}</td>
                       <td className="border p-2">{row.phone || "-"}</td>
                       <td className="border p-2 text-center font-semibold">
@@ -358,6 +392,50 @@ export default function ReportsDashboard() {
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {selectedEntityType && (
+          <div className="mt-6 border border-gray-200 rounded p-4 bg-gray-50">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h3 className="text-lg font-semibold">
+                {selectedEntityType === "school" ? "Registered Students" : "Referred Students"} - {selectedEntityLabel}
+              </h3>
+              <button
+                type="button"
+                onClick={closeStudentDrilldown}
+                className="px-3 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100"
+              >
+                Close
+              </button>
+            </div>
+
+            {selectedStudents.length === 0 ? (
+              <p className="text-sm text-gray-600">No students found.</p>
+            ) : (
+              <div className="overflow-x-auto border border-gray-200 rounded bg-white">
+                <table className="min-w-full border-collapse whitespace-nowrap text-sm">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="border p-2 text-left">Student Name</th>
+                      <th className="border p-2 text-left">Class</th>
+                      <th className="border p-2 text-left">Roll No</th>
+                      <th className="border p-2 text-left">Section</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedStudents.map((student, index) => (
+                      <tr key={student._id || `${student.name || "student"}-${index}`} className="odd:bg-white even:bg-gray-50">
+                        <td className="border p-2">{student.name || "-"}</td>
+                        <td className="border p-2">{student.class || "-"}</td>
+                        <td className="border p-2">{student.rollNo || "-"}</td>
+                        <td className="border p-2">{student.section || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </div>

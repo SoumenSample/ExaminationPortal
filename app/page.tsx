@@ -426,7 +426,7 @@ export default function Home() {
                 <p className="mt-2 text-slate-700">Rs 100</p>
               </div>
               <div className="rounded-2xl border border-sky-200 bg-sky-50 p-5 text-sm">
-                <p className="font-bold text-sky-700">Age 13-15 years</p>
+                <p className="font-bold text-sky-700">Age 13-16 years</p>
                 <p className="mt-2 text-slate-700">Rs 150</p>
               </div>
               <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm">

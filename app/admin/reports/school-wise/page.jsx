@@ -30,10 +30,10 @@ export default function SchoolWiseReportPage() {
   const downloadExcel = () => {
     if (!report) return
 
-    let csvContent = "School Name,City,Student Count,Total Fee Collected\n"
+    let csvContent = "School Name,Registration ID/License No,City,Student Count,Total Fee Collected\n"
     
     report.schoolReport.forEach(school => {
-      csvContent += `"${school.schoolName}","${school.schoolCity}",${school.studentCount},${school.totalFeeCollected}\n`
+      csvContent += `"${school.schoolName}","${school.schoolRegistrationId || "-"}","${school.schoolCity}",${school.studentCount},${school.totalFeeCollected}\n`
     })
     
     csvContent += `\n"Individual Registrations","",${report.individualRegistrations},0\n`
@@ -65,6 +65,7 @@ export default function SchoolWiseReportPage() {
             <thead className="bg-blue-600 text-white">
               <tr>
                 <th className="p-4 text-left">School Name</th>
+                <th className="p-4 text-left">Reg/License No</th>
                 <th className="p-4 text-left">City</th>
                 <th className="p-4 text-center">Total Students</th>
                 <th className="p-4 text-right">Total Fee Collected (₹)</th>
@@ -74,13 +75,14 @@ export default function SchoolWiseReportPage() {
               {report?.schoolReport?.map((school, idx) => (
                 <tr key={idx} className={idx % 2 === 0 ? "bg-gray-50" : "bg-white"} >
                   <td className="p-4 border-b text-slate-900">{school.schoolName}</td>
+                  <td className="p-4 border-b text-slate-900">{school.schoolRegistrationId || "-"}</td>
                   <td className="p-4 border-b text-slate-900">{school.schoolCity}</td>
                   <td className="p-4 border-b text-center text-slate-900 font-semibold">{school.studentCount}</td>
                   <td className="p-4 border-b text-right text-slate-900">₹{school.totalFeeCollected.toLocaleString()}</td>
                 </tr>
               ))}
               <tr className="bg-yellow-50 font-bold">
-                <td colSpan="2" className="p-4 border-t-2">Individual Registrations</td>
+                <td colSpan="3" className="p-4 border-t-2">Individual Registrations</td>
                 <td className="p-4 border-t-2 text-center">{report?.individualRegistrations || 0}</td>
                 <td className="p-4 border-t-2 text-right">₹0</td>
               </tr>

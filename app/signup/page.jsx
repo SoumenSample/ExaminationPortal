@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
-import logo from "../dashboard/WhatsApp Image 2026-03-18 at 9.04.15 PM.jpeg"
+import logo from "../dashboard/logo.jpeg"
 import { useAppDialog } from "../component/AppDialog"
 
 const initialForm = {
@@ -22,6 +22,7 @@ const initialForm = {
   class:"",
   registrationSchool:"",
   registrationType:"individual",
+  schoolRegistrationId:"",
   referralCode:"",
   password:"",
   confirm:""
@@ -172,6 +173,16 @@ export default function Signup() {
 
       if (!/^\d{6}$/.test(form.pincode.trim())) {
         setMessage("Pincode must be a 6-digit number")
+        return
+      }
+
+      if (role === "member" && !/^\d{12}$/.test(form.aadhaar.trim())) {
+        setMessage("Aadhaar must be a 12-digit number for member registration")
+        return
+      }
+
+      if (role === "school" && !form.schoolRegistrationId.trim()) {
+        setMessage("Registration ID or License Number is required for school registration")
         return
       }
 
@@ -488,6 +499,31 @@ export default function Signup() {
                   onChange={handleChange}
                   required
                 />
+
+                {role === "school" && (
+                  <input
+                    name="schoolRegistrationId"
+                    placeholder="Registration ID / License Number"
+                    className="w-full border border-slate-300 bg-white p-2 rounded text-slate-900 placeholder:text-slate-400"
+                    value={form.schoolRegistrationId}
+                    onChange={handleChange}
+                    required
+                  />
+                )}
+
+                {role === "member" && (
+                  <input
+                    name="aadhaar"
+                    placeholder="Aadhaar Number"
+                    inputMode="numeric"
+                    pattern="\d{12}"
+                    maxLength={12}
+                    className="w-full border border-slate-300 bg-white p-2 rounded text-slate-900 placeholder:text-slate-400"
+                    value={form.aadhaar}
+                    onChange={handleChange}
+                    required
+                  />
+                )}
 
                 <p className="text-xs text-slate-500">
                   Unique code will be generated automatically after signup.

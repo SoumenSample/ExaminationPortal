@@ -42,11 +42,11 @@ export default function MemberWiseReportPage() {
         csvContent += `"${member.name}","${member.email}","${member.phone}",${member.totalStudentsReferred},${member.totalCommissionEarned}\n`
       })
     } else {
-      csvContent = "School Name,Email,Phone,Students Registered,Total Commission Earned (₹)\n"
+      csvContent = "School Name,Email,Phone,Registration ID/License No,Students Registered,Total Commission Earned (₹)\n"
       filename = `school-report-${new Date().toISOString().split('T')[0]}.csv`
       
       report.schoolReport?.forEach(school => {
-        csvContent += `"${school.name}","${school.email}","${school.phone}",${school.totalStudentsRegistered},${school.totalCommissionEarned}\n`
+        csvContent += `"${school.name}","${school.email}","${school.phone}","${school.schoolRegistrationId || "-"}",${school.totalStudentsRegistered},${school.totalCommissionEarned}\n`
       })
     }
 
@@ -139,6 +139,7 @@ export default function MemberWiseReportPage() {
                   <th className="p-4 text-left">School Name</th>
                   <th className="p-4 text-left">Email</th>
                   <th className="p-4 text-left">Phone</th>
+                  <th className="p-4 text-left">Reg/License No</th>
                   <th className="p-4 text-center">Students Registered</th>
                   <th className="p-4 text-right">Total Commission (₹)</th>
                 </tr>
@@ -150,13 +151,14 @@ export default function MemberWiseReportPage() {
                       <td className="p-4 border-b text-slate-900 font-semibold">{school.name}</td>
                       <td className="p-4 border-b text-slate-900">{school.email}</td>
                       <td className="p-4 border-b text-slate-900">{school.phone}</td>
+                      <td className="p-4 border-b text-slate-900">{school.schoolRegistrationId || "-"}</td>
                       <td className="p-4 border-b text-center text-slate-900 font-semibold">{school.totalStudentsRegistered || 0}</td>
                       <td className="p-4 border-b text-right text-slate-900 font-semibold">₹{school.totalCommissionEarned?.toLocaleString() || 0}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="p-4 text-center text-slate-500">No school data available</td>
+                    <td colSpan="6" className="p-4 text-center text-slate-500">No school data available</td>
                   </tr>
                 )}
               </tbody>

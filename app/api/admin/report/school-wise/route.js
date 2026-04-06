@@ -46,11 +46,48 @@ export async function GET(req) {
         },
       },
       {
+        $lookup: {
+          from: "users",
+          let: { schoolId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$registrationSchool", "$$schoolId"] },
+                    { $eq: ["$role", "student"] },
+                  ],
+                },
+              },
+            },
+            {
+              $project: {
+                _id: 1,
+                name: 1,
+                class: 1,
+                rollNo: 1,
+                section: 1,
+              },
+            },
+            {
+              $sort: { name: 1 },
+            },
+          ],
+          as: "students",
+        },
+      },
+      {
         $project: {
           _id: 0,
           schoolId: "$_id",
           schoolName: {
             $ifNull: [{ $arrayElemAt: ["$schoolDoc.name", 0] }, { $arrayElemAt: ["$schoolUser.name", 0] }],
+          },
+          schoolRegistrationId: {
+            $ifNull: [
+              { $arrayElemAt: ["$schoolDoc.registrationNumber", 0] },
+              { $arrayElemAt: ["$schoolUser.schoolRegistrationId", 0] }
+            ],
           },
           schoolAddress: {
             $ifNull: [{ $arrayElemAt: ["$schoolDoc.address", 0] }, { $arrayElemAt: ["$schoolUser.address", 0] }],
@@ -58,6 +95,7 @@ export async function GET(req) {
           schoolCity: { $ifNull: [{ $arrayElemAt: ["$schoolDoc.city", 0] }, ""] },
           studentCount: 1,
           totalFeeCollected: 1,
+          students: 1,
         },
       },
       {

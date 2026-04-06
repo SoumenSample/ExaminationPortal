@@ -36,7 +36,20 @@ export async function GET(req) {
           totalStudentsReferred: { $ifNull: ["$totalReferralCount", { $size: "$referredStudents" }] },
           totalCommissionEarned: { $ifNull: ["$totalCommission", 0] },
           referralCode: 1,
-          totalReferralCount: 1
+          totalReferralCount: 1,
+          referredStudents: {
+            $map: {
+              input: "$referredStudents",
+              as: "student",
+              in: {
+                _id: "$$student._id",
+                name: "$$student.name",
+                class: "$$student.class",
+                rollNo: "$$student.rollNo",
+                section: "$$student.section",
+              },
+            },
+          },
         }
       },
       {
@@ -72,9 +85,23 @@ export async function GET(req) {
           name: 1,
           email: 1,
           phone: 1,
+          schoolRegistrationId: 1,
           totalStudentsRegistered: { $size: "$registeredStudents" },
           totalCommissionEarned: { $ifNull: ["$totalCommission", 0] },
-          referralCode: 1
+          referralCode: 1,
+          registeredStudents: {
+            $map: {
+              input: "$registeredStudents",
+              as: "student",
+              in: {
+                _id: "$$student._id",
+                name: "$$student.name",
+                class: "$$student.class",
+                rollNo: "$$student.rollNo",
+                section: "$$student.section",
+              },
+            },
+          },
         }
       },
       {

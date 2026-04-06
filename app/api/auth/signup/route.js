@@ -122,6 +122,7 @@ export async function POST(req){
       district,
       pincode,
       state,
+      schoolRegistrationId,
       aadhaar,
       password,
       referralCode,
@@ -149,6 +150,8 @@ export async function POST(req){
     const normalizedDistrict = typeof district === "string" ? district.trim() : ""
     const normalizedState = typeof state === "string" ? state.trim() : ""
     const normalizedPincode = typeof pincode === "string" ? pincode.trim() : ""
+    const normalizedSchoolRegistrationId = typeof schoolRegistrationId === "string" ? schoolRegistrationId.trim() : ""
+    const normalizedAadhaar = typeof aadhaar === "string" ? aadhaar.trim() : ""
     
     let referrerId = null
     
@@ -169,6 +172,20 @@ export async function POST(req){
     if(!/^\d{6}$/.test(normalizedPincode)){
       return Response.json(
         {message:"Pincode must be a 6-digit number"},
+        {status:400}
+      )
+    }
+
+    if(role === "member" && !/^\d{12}$/.test(normalizedAadhaar)){
+      return Response.json(
+        {message:"Aadhaar must be a 12-digit number for member registration"},
+        {status:400}
+      )
+    }
+
+    if(role === "school" && !normalizedSchoolRegistrationId){
+      return Response.json(
+        {message:"Registration ID or License Number is required for school registration"},
         {status:400}
       )
     }
@@ -257,6 +274,17 @@ export async function POST(req){
         {status:400}
       )
     }
+
+    if(role === "member"){
+      const existingAadhaarUser = await User.findOne({ aadhaar: normalizedAadhaar })
+
+      if(existingAadhaarUser){
+        return Response.json(
+          {message:"Aadhaar is already registered"},
+          {status:400}
+        )
+      }
+    }
     
     // CHECK REFERRAL CODE FOR STUDENT
     if(role === "student" && effectiveReferralCode){
@@ -341,8 +369,8 @@ export async function POST(req){
       district: normalizedDistrict,
       pincode: normalizedPincode,
       state: normalizedState,
-      aadhaar,
-      age: role === "student" ? age : null,
+      schoolRegistrationId: role === "school" ? normalizedSchoolRegistrationId : null,
+      aadhaar: normalizedAadhaar,
       rollNo: role === "student" ? normalizedRollNo : null,
       section: role === "student" ? normalizedSection : null,
       class: role === "student" ? studentClass : null,

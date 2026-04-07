@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import ChatBox from "@/app/component/chatBox.jsx"
-import logo from "./logo.jpeg"
+import logo from "./logo.png"
 
 const MENU_ITEMS = [
   { value: "home", label: "Home", icon: "🏠" },

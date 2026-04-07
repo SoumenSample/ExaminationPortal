@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import logo from "../dashboard/logo.jpeg"
+import logo from "../dashboard/logo.png"
 import { useAppDialog } from "./AppDialog"
 
 function formatDate(value) {

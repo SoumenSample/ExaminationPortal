@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
-import logo from "../dashboard/logo.jpeg"
+import logo from "../dashboard/logo.png"
 import { useAppDialog } from "../component/AppDialog"
 
 const initialForm = {

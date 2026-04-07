@@ -185,7 +185,7 @@ export default function Login(){
           <Image
             src={logo}
             alt="Examination Portal Logo"
-            className="object-cover rounded-xl w-30 h-15 mx-auto mb-4"
+            className="object-cover rounded-full w-24 h-24 mx-auto mb-4"
             priority
           />
 
@@ -304,4 +304,3 @@ export default function Login(){
     </div>
   )
 }
-

@@ -283,7 +283,7 @@ export default function Signup() {
         <Image
           src={logo}
           alt="Examination Portal Logo"
-          className="object-cover rounded-xl w-30 h-15 ml-33 -mt-5 mb-6"
+          className="object-cover rounded-full w-24 h-24 mx-auto -mt-2 mb-6"
           priority
         />
 

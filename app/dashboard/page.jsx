@@ -322,9 +322,9 @@ export default function Dashboard() {
           <Image
             src={logo}
             alt="Examination Portal Logo"
-            width={72}
-            height={72}
-            className="rounded-lg object-cover mb-3"
+            width={84}
+            height={84}
+            className="rounded-full object-contain mb-3 bg-white p-1"
             priority
           />
           <p className="font-semibold text-xl">{user.name || "Student"}</p>
@@ -386,9 +386,9 @@ export default function Dashboard() {
                   <Image
                     src={logo}
                     alt="Examination Portal Logo"
-                    width={72}
-                    height={72}
-                    className="rounded object-cover mb-3 bg-white"
+                    width={84}
+                    height={84}
+                    className="rounded-full object-contain mb-3 bg-white p-1"
                   />
                   <p className="font-semibold text-2xl leading-tight">{user.name || "Student"}</p>
                   <p className="text-white/90 text-sm mt-2">Name: {user.name || "-"}</p>

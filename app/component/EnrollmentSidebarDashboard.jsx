@@ -453,13 +453,15 @@ export default function EnrollmentSidebarDashboard({ title }) {
   return (
     <div className="flex min-h-screen bg-gray-100 text-slate-900">
       <div className="hidden md:block w-64 bg-white text-black p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <Image
-            src={logo}
-            alt="Examination Portal Logo"
-            className="object-cover rounded-xl w-100 h-25 -mt-5"
-            priority
-          />
+        <div className="flex justify-center mb-6">
+          <div className="w-28 h-28 rounded-full overflow-hidden bg-slate-100">
+            <Image
+              src={logo}
+              alt="Examination Portal Logo"
+              className="object-contain w-full h-full"
+              priority
+            />
+          </div>
         </div>
 
         <ul className="space-y-3">

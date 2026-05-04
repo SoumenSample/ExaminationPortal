@@ -310,7 +310,7 @@ export default function Home() {
                 </div>
 
                 <div className="absolute bottom-6 right-6 rounded-xl bg-white/90 px-4 py-2 text-xs font-bold text-slate-800">
-                  Learn. Grow. Lead.
+                  शिक्षित भारत, संगठित भारत, विकसित भारत
                 </div>
               </div>
             </aside>

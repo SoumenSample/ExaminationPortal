@@ -298,7 +298,8 @@ export default function Home() {
                 <div className="absolute inset-0 bg-gradient-to-br from-slate-900/45 via-slate-900/20 to-blue-900/35" />
 
                 <div className="relative grid min-h-[300px] place-items-center p-6 md:min-h-[350px] md:p-10">
-                  <div className="relative rounded-full border-4 border-white/95 bg-slate-900/70 p-3 shadow-[0_16px_30px_rgba(15,23,42,0.35)]">
+                  <div className="relative flex flex-col items-center">
+                    <div className="rounded-full border-4 border-white/95 bg-slate-900/70 p-3 shadow-[0_16px_30px_rgba(15,23,42,0.35)]">
                     <Image
                       src="/logo.png"
                       alt="Foundation emblem"
@@ -306,11 +307,12 @@ export default function Home() {
                       height={170}
                       className="h-32 w-32 rounded-full object-cover md:h-40 md:w-40"
                     />
-                  </div>
-                </div>
+                    </div>
 
-                <div className="absolute bottom-6 right-6 rounded-xl bg-white/90 px-4 py-2 text-xs font-bold text-slate-800">
-                  शिक्षित भारत, संगठित भारत, विकसित भारत
+                    <div className="mt-4 rounded-xl bg-white/90 px-4 py-2 text-center text-xs font-bold text-slate-800">
+                      शिक्षित भारत, संगठित भारत, विकसित भारत
+                    </div>
+                  </div>
                 </div>
               </div>
             </aside>

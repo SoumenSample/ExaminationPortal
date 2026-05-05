@@ -499,7 +499,7 @@ export default function Home() {
               </p>
 
               <p className="mt-4 text-sm leading-7 text-slate-700">
-                Email: divyanshidsmf@gmail.com
+                Email: santosh@divyanshisakshartamissionfoundation.in
                 <br />
                 WhatsApp / Mobile: 6291000845
               </p>
@@ -564,7 +564,7 @@ export default function Home() {
           <div>
             <h3 className="text-lg font-bold text-white">Contact Info</h3>
             <ul className="mt-4 space-y-3 text-sm leading-7 text-slate-400">
-              <li>divyanshidsmf@gmail.com</li>
+              <li>santosh@divyanshisakshartamissionfoundation.in</li>
               <li>+91 6291000845</li>
               <li>
                 Holding No-199, Dolui Para, Makhla, Hooghly, Serampur Uttarpara, West Bengal - 712245, India.

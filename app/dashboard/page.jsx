@@ -651,7 +651,7 @@ export default function Dashboard() {
                 Holding No-199, Dolui Para, Backside of Karai Factory, Makhla,
                 Hooghly, Serampur Uttarpara, West Bengal - 712245, India.
               </p>
-              <p>Email: divyanshidsmf@gmail.com</p>
+              <p>Email: santosh@divyanshisakshartamissionfoundation.in</p>
               <p>WhatsApp / Mobile: 6291000845</p>
             </div>
             <button
